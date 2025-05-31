@@ -1183,7 +1183,7 @@ class ConClasseGeral
      * @param string $tabela Nome da tabela a ser convertida.
      * @return string Nome da classe gerada a partir da tabela.
      */
-    public function nomeClase($tabela)
+    public function nomeClase(string $tabela): string
     {
         $temp = explode('_', $tabela);
         $iniciaisExcluir = ['tb', 'tabela', 'table', 'view'];

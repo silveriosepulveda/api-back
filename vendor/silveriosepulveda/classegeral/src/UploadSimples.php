@@ -56,9 +56,9 @@ class UploadSimples
         }
 
         if ($up == 1) {
-            return true;
+            return json_encode(['sucesso' => 'Arquivo Anexado']) ;
         } else {
-            return false;
+            return json_encode(['erro' => 'Erro ao Anexar Arquivo']) ;
         }
         //*/
     }

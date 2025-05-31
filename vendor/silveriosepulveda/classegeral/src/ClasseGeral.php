@@ -1331,12 +1331,11 @@ class ClasseGeral extends ConClasseGeral
             }
 
             //Nova funcao que vai verificar se tem na classe alguma funcao chamada aoAnexar
-            $nomeClasse = $this->nomeClase($tabela);
-            $arquivoClasse = $caminho . 'apiLocal/classes/' . $nomeClasse . '.class.php';
+            $arquivoClasse = $caminho . 'apiLocal/classes/' . $this->nomeClase($tabela) . '.class.php';
 
             if (file_exists($arquivoClasse)) {
                 require_once $arquivoClasse;
-                $classe = new ('\\' . $nomeClase)();
+                $classe = new ('\\' . $this->nomeClase($tabela))();
                 if (method_exists($classe, 'aoIncluirAnexos')) {
                     $classe->aoIncluirAnexos($p);
                 }
