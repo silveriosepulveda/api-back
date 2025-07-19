@@ -2,8 +2,6 @@
 
 namespace ClasseGeral;
 
-require_once __DIR__ . '/conClasseGeral.php';
-
 /**
  * Classe principal para operações gerais do sistema.
  * 
