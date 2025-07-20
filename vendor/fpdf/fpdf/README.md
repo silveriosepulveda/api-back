@@ -37,7 +37,7 @@ use Fpdf\Fpdf;
 Then use as per the FPDF documentation.
 
 ``` php
-$pdf =  new ClasseGeral\Fpdf();
+$pdf = new Fpdf();
 ```
 
 Alternatively you can extend as a typical php class.

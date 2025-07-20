@@ -93,8 +93,8 @@ $caminhoTemp = explode('/', pathinfo($_SERVER['SCRIPT_FILENAME'])['dirname']);
 unset($caminhoTemp[sizeof($caminhoTemp) - 1]);
 $caminho = join('/', $caminhoTemp) . '/';
 
-if (is_file($caminho . 'apiLocal/configuracoesAPIs.php')) {
-    require_once $caminho . 'apiLocal/configuracoesAPIs.php';
+if (is_file($caminho . 'backLocal/configuracoesAPIs.php')) {
+    require_once $caminho . 'backLocal/configuracoesAPIs.php';
 }
 
 ini_set('display_errors', 1);
@@ -121,7 +121,7 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
             $parametros = $p;
         }
 
-        $arquivo = $caminho . 'apiLocal/' . $configuracoesAPIs[$API]['arquivo'];
+        $arquivo = $caminho . 'backLocal/' . $configuracoesAPIs[$API]['arquivo'];
 
         require_once $arquivo;
         $classe = new $tabela();
@@ -142,7 +142,7 @@ $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Resp
 //        @session_start();
         $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 
-        $arquivo = $caminho . 'apiLocal/' . $configuracoesAPIs[$API]['arquivo'];
+        $arquivo = $caminho . 'backLocal/' . $configuracoesAPIs[$API]['arquivo'];
 
         require_once $arquivo;
         $classe = new $tabela();
@@ -180,7 +180,7 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
     if ($tabela == 'classeGeral') {
         $usarClasseGeralLocal = false;
 
-        $arqClasseLocal = $conex->pegaCaminhoApi() . 'apiLocal/classes/classeGeralLocal.class.php';
+        $arqClasseLocal = $conex->pegaCaminhoApi() . 'backLocal/classes/classeGeralLocal.class.php';
         if (is_file($arqClasseLocal)) {
             $classe = new ('\\classeGeralLocal')();
             if (method_exists($classe, $funcaoExecutar)) {
@@ -194,9 +194,9 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
         }
     } else
         //Fazendo alteracoes para adaptar a APILocal
-        //if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'apiLocal/classes/' . $tabela . '.class.php')) {
+        //if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php')) {
         $arq = '';
-        $arq = $conex->pegaCaminhoApi() . 'apiLocal/classes/' . $tabela . '.class.php';
+        $arq = $conex->pegaCaminhoApi() . 'api/backLocal/classes/' . $tabela . '.class.php';
 
         if (is_file($arq)) {
             require_once($arq);
@@ -220,8 +220,8 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
         $classe = new \ClasseGeral\ClasseGeral();
     } else {
         //Fazendo alteracoes para adaptar a APILocal
-        if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'apiLocal/classes/' . $tabela . '.class.php')) {
-            require_once($_SESSION[session_id()]['caminhoApiLocal'] . 'apiLocal/classes/' . $tabela . '.class.php');
+        if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php')) {
+            require_once($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php');
         } else if (is_file('classes/' . $tabela . '.class.php')) {
             require_once('classes/' . $tabela . '.class.php');
         }
@@ -234,8 +234,8 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
 //Anexar Arquivos
 $app->post('/anexarArquivos', function (Request $request, Response $response, $argumentos) {
     continuar();
-    if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'apiLocal/classes/classeGeralLocal.class.php')) {
-        require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'apiLocal/classes/classeGeralLocal.class.php';
+    if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/classeGeralLocal.class.php')) {
+        require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/classeGeralLocal.class.php';
         $anexar = new classeGeralLocal();
     } else {
         //require_once 'classes/classeGeral.class.php';

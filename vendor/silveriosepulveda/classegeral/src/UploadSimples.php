@@ -1,10 +1,10 @@
 <?php
 
 namespace ClasseGeral;
-//
-//if (!class_exists('Imagick')) {
-//    throw new \Exception('Imagick extension is not installed or enabled.');
-//}
+
+if (!class_exists('Imagick')) {
+    throw new \Exception('Imagick extension is not installed or enabled.');
+}
 
 
 /**
@@ -56,9 +56,9 @@ class UploadSimples
         }
 
         if ($up == 1) {
-            return json_encode(['sucesso' => 'Arquivo Anexado']) ;
+            return true;
         } else {
-            return json_encode(['erro' => 'Erro ao Anexar Arquivo']) ;
+            return false;
         }
         //*/
     }

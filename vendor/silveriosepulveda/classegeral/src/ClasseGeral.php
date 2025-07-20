@@ -2,6 +2,8 @@
 
 namespace ClasseGeral;
 
+require_once __DIR__ . '/conClasseGeral.php';
+
 /**
  * Classe principal para operações gerais do sistema.
  * 
@@ -46,7 +48,7 @@ class ClasseGeral extends ConClasseGeral
     {
         clearstatcache();
         date_default_timezone_set('America/Sao_Paulo');
-       // $this->funcoes = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/BaseArcabouco/funcoes.class.php';
+        $this->funcoes = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/BaseArcabouco/funcoes.class.php';
     }
 
     /**
@@ -1329,11 +1331,12 @@ class ClasseGeral extends ConClasseGeral
             }
 
             //Nova funcao que vai verificar se tem na classe alguma funcao chamada aoAnexar
-            $arquivoClasse = $caminho . 'apiLocal/classes/' . $this->nomeClase($tabela) . '.class.php';
+            $nomeClasse = $this->nomeClase($tabela);
+            $arquivoClasse = $caminho . 'apiLocal/classes/' . $nomeClasse . '.class.php';
 
             if (file_exists($arquivoClasse)) {
                 require_once $arquivoClasse;
-                $classe = new ('\\' . $this->nomeClase($tabela))();
+                $classe = new ('\\' . $nomeClase)();
                 if (method_exists($classe, 'aoIncluirAnexos')) {
                     $classe->aoIncluirAnexos($p);
                 }

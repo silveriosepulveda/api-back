@@ -104,13 +104,10 @@ class ConClasseGeral
      */
     public function pegaCaminhoApi()
     {
-       if (isset($_SESSION) && isset($_SESSION[session_id()]) && isset($_SESSION[session_id()]['caminhoApiLocal']))
-           return $_SESSION[session_id()]['caminhoApiLocal'];
-       else if (isset($_SERVER['PWD']))
-           return $_SERVER['PWD'] . '/';
-       else
-           return $_SERVER['DOCUMENT_ROOT'] . '/';
-        //return '/Users/silverio/Dev/Web/segmed/';
+        if (isset($_SESSION[session_id()]['caminhoApiLocal']))
+            return $_SESSION[session_id()]['caminhoApiLocal'];
+        else
+            return $_SERVER['DOCUMENT_ROOT'] . '/';
     }
 
     /**
@@ -406,8 +403,8 @@ class ConClasseGeral
         $caminhoAPILocal = $this->pegaCaminhoApi();
         $configuracoesTabela = [];
 
-        if (is_file($caminhoAPILocal . 'apiLocal/classes/configuracoesTabelas.class.php')) {
-            require_once $caminhoAPILocal . 'apiLocal/classes/configuracoesTabelas.class.php';
+        if (is_file($caminhoAPILocal . 'api/backLocal/classes/configuracoesTabelas.class.php')) {
+            require_once $caminhoAPILocal . 'api/backLocal/classes/configuracoesTabelas.class.php';
 
 
             $configuracoesTabelaTemp = new('\\configuracoesTabelas')();
@@ -431,7 +428,7 @@ class ConClasseGeral
      */
     public function pegaDataBase($tabela = '', $dataBase = '')
     {
-        $dados_con = $this->pegaCaminhoApi() . 'apiLocal/classes/dadosConexao.class.php';
+        $dados_con = $this->pegaCaminhoApi() . 'api/backLocal/classes/dadosConexao.class.php';
         require_once($dados_con);
         $this->db = new ('\\dadosConexao')();
 
@@ -513,9 +510,7 @@ class ConClasseGeral
             $con = $this->Conexoes[$dataBase];
             ini_set('error_reporting', '~E_DEPRECATED');
             $con->query('set sql_mode=""');
-
             $retorno = $con->query($sql);
-
             if (!$retorno) {                
                 $this->desconecta($dataBase);
             }            
@@ -1127,13 +1122,13 @@ class ConClasseGeral
         $retorno = [];
         $classe = $this->nomeClase($classeEntrada);
 
-        $caminhoAPILocal = $this->pegaCaminhoApi();
-        $arquivo = $caminhoAPILocal . 'apiLocal/classes/' . $classe . '.class.php';
+        $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
+        $arquivo = $caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php';
 
         if (file_exists($arquivo)) {
             require_once($arquivo);
 
-            $temp = new ('\\' .  $classe)();
+            $temp = new $classe();
 
             $funcaoEstrutura = !is_array($parametros) || !isset($parametros['funcaoEstrutura']) ? 'estrutura' : $parametros['funcaoEstrutura'];
 
@@ -1183,7 +1178,7 @@ class ConClasseGeral
      * @param string $tabela Nome da tabela a ser convertida.
      * @return string Nome da classe gerada a partir da tabela.
      */
-    public function nomeClase(string $tabela): string
+    public function nomeClase($tabela)
     {
         $temp = explode('_', $tabela);
         $iniciaisExcluir = ['tb', 'tabela', 'table', 'view'];
@@ -2457,6 +2452,7 @@ class ConClasseGeral
         $json = json_encode($array);
         echo $json;
     }
+
     /**
      * Completa um campo com sugestões baseadas em um texto informado.
      *
@@ -2557,8 +2553,8 @@ class ConClasseGeral
         $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
 
         $configuracoesTabela = [];
-        if (is_file($caminhoAPILocal . '/apiLocal/classes/configuracoesTabelas.class.php')) {
-            require_once $caminhoAPILocal . '/apiLocal/classes/configuracoesTabelas.class.php';
+        if (is_file($caminhoAPILocal . '/api/backLocal/classes/configuracoesTabelas.class.php')) {
+            require_once $caminhoAPILocal . '/api/backLocal/classes/configuracoesTabelas.class.php';
             $configuracoesTabelaTemp = new ('\\configuracoesTabelas')();
 
             if (method_exists($configuracoesTabelaTemp, $tabela)) {
@@ -2865,10 +2861,10 @@ class ConClasseGeral
     public function criaClasseTabela($classe)
     {
         $caminhoApiLocal = $this->pegaCaminhoApi();
-        $arquivo = $caminhoApiLocal . 'apiLocal/classes/' . $classe . '.class.php';
+        $arquivo = $caminhoApiLocal . 'api/backLocal/classes/' . $classe . '.class.php';
         if (is_file($arquivo)) {
             require_once $arquivo;
-            return new ('\\' . $classe)();
+            return new $classe();
         } else {
             return false;
         }
@@ -2884,7 +2880,7 @@ class ConClasseGeral
     public function criaFuncaoClasse($classe, $funcao)
     {
         if (gettype($classe) == 'string' && !class_exists($classe)) {
-            $arquivoClasse = $this->pegaCaminhoApi() . 'apiLocal/classes/' . $classe . '.class.php';
+            $arquivoClasse = $this->pegaCaminhoApi() . 'api/backLocal/classes/' . $classe . '.class.php';
             if (file_exists($arquivoClasse)) {
                 require_once $arquivoClasse;
                 $classe = new $classe();
