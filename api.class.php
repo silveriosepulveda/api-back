@@ -33,7 +33,7 @@ use Slim\Factory\AppFactory;
 require __DIR__ . '/vendor/autoload.php';
 
 $app = AppFactory::create();
-$app->setBasePath("/api/back");
+$app->setBasePath("/api/api-back");
 
 $app->add(function (Request $request, $handler) {
     $response = $handler->handle($request);
