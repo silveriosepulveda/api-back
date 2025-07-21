@@ -1,1 +1,36 @@
+# Composer
 vendor/
+/composer.lock
+
+# PHPUnit
+/phpunit.xml
+/phpunit.xml.dist
+/.phpunit.result.cache
+
+# IDEs
+/.idea/
+*.iml
+*.sublime*
+*.vscode/
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+
+# Cache
+/cache/
+
+# Testes
+#/tests/output/
+#/tests/_output/
+#/tests/_support/_generated/
+
+# Arquivos temporários
+*.tmp
+*.swp
+
+# Outros
+.env
+.env.*
