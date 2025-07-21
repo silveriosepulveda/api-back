@@ -8,13 +8,19 @@ namespace ClasseGeral;
  * Responsável por fornecer métodos utilitários para conexão com banco de dados,
  * manipulação de sessões, validação de campos obrigatórios, entre outros.
  */
-class ConClasseGeral
+
+if (isset($_SESSION[session_id()]['caminhoApiLocal']))
+    include $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/dadosConexao.class.php';
+else
+    include $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php' ;
+
+
+class ConClasseGeral extends dadosConexao
 {
     /**
      * Objeto de configuração do banco de dados.
      * @var mixed
      */
-    public $db;
 
     /**
      * Mapeamento de sexo por extenso.
@@ -53,12 +59,6 @@ class ConClasseGeral
     public $Conexoes;
 
     /**
-     * Conexão base privada.
-     * @var mixed
-     */
-    private $ConexaoBase;
-
-    /**
      * Nome da base de dados.
      * @var string
      */
@@ -74,6 +74,14 @@ class ConClasseGeral
      * Retorna o usuário logado na sessão.
      * @return mixed Usuário logado ou null.
      */
+
+
+    public function __construct()
+    {
+        parent::__construct();
+        $teste = $this->bases;
+    }
+
     public function buscaUsuarioLogado()
     {     
         $sessao = new \ClasseGeral\ManipulaSessao();
@@ -355,7 +363,7 @@ class ConClasseGeral
 
             $this->conecta($dataBase);
 
-            $base = $dataBase; //strtolower($this->db->MyBase);
+            $base = $dataBase; //strtolower($this->MyBase);
             $sql = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE FROM `INFORMATION_SCHEMA`.`COLUMNS`";
             $sql .= "WHERE `TABLE_SCHEMA` = '$base' AND `TABLE_NAME`='$tabela' ORDER BY ORDINAL_POSITION";
 
@@ -428,9 +436,9 @@ class ConClasseGeral
      */
     public function pegaDataBase($tabela = '', $dataBase = '')
     {
-        $dados_con = $this->pegaCaminhoApi() . 'api/backLocal/classes/dadosConexao.class.php';
-        require_once($dados_con);
-        $this->db = new ('\\dadosConexao')();
+//        $dados_con = $this->pegaCaminhoApi() . 'api/backLocal/classes/dadosConexao.class.php';
+//        require_once($dados_con);
+        //$this->db = new ('\\dadosConexao')();
 
         $configuracoesTabela = [];
 
@@ -438,13 +446,14 @@ class ConClasseGeral
             $configuracoesTabela = $this->buscaConfiguracoesTabela($tabela);
         }
 
-        if ($dataBase != '' && gettype($dataBase) == 'string' && isset($this->db->bases[$dataBase]))
+        if ($dataBase != '' && gettype($dataBase) == 'string' && isset($this->bases[$dataBase]))
             $retorno = $dataBase;
         else
-            if ($tabela != '' && isset($configuracoesTabela['dataBase']) && isset($this->db->bases[$configuracoesTabela['dataBase']]))
+            if ($tabela != '' && isset($configuracoesTabela['dataBase']) && isset($this->bases[$configuracoesTabela['dataBase']]))
                 $retorno = $configuracoesTabela['dataBase'];
             else
-                $retorno = $this->db->conexaoPadrao;
+                //$retorno = $this->conexaoPadrao;
+                $retorno = $this->conexaoPadrao;
 
         return $retorno;
     }
@@ -456,22 +465,16 @@ class ConClasseGeral
      */
     public function conecta($dataBase = '')
     {
-
         if ($dataBase != '' /*&& !isset($this->Conexoes[$dataBase])*/) {
-
-            if (!$this->db) {
-                $dataBase = $this->pegaDataBase($dataBase);
-            }
-
             if (isset($this->Conexoes[$dataBase])) {
                 $this->desconecta($dataBase);
             }
 
             date_default_timezone_set('America/Sao_Paulo');
             
-            $servidor = $this->db->bases[$dataBase]['servidor'];
-            $usuario = $this->db->bases[$dataBase]['usuario'];
-            $senha = $this->db->bases[$dataBase]['senha'];
+            $servidor = $this->bases[$dataBase]['servidor'];
+            $usuario = $this->bases[$dataBase]['usuario'];
+            $senha = $this->bases[$dataBase]['senha'];
 
             $this->Conexoes[$dataBase] = new \mysqli($servidor, $usuario, $senha, $dataBase);
             
@@ -499,14 +502,14 @@ class ConClasseGeral
      */
     public function executasql($sql, $dataBase = '')
     {
-        $TipoBase = isset($this->db->TipoBase) ? $this->db->TipoBase : 'MySQL';
+        $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
         
         $dataBase = $this->pegaDataBase('', $dataBase);
 
         $this->conecta($dataBase);
 
 
-        if ($this->db->bases[$dataBase]['tipo_base'] === 'MySQL') {
+        if ($this->bases[$dataBase]['tipo_base'] === 'MySQL') {
             $con = $this->Conexoes[$dataBase];
             ini_set('error_reporting', '~E_DEPRECATED');
             $con->query('set sql_mode=""');
@@ -528,7 +531,7 @@ class ConClasseGeral
      */
     public function retornosql($resultado)
     {        
-        $TipoBase = isset($this->db->TipoBase) ? $this->db->TipoBase : 'MySQL';
+        $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
         if ($TipoBase === 'MySQL') {
             if ($resultado) {
                 return $resultado->fetch_assoc();
@@ -1023,10 +1026,10 @@ class ConClasseGeral
      */
     public function linhasafetadas($dataBase = '')
     {
-        $TipoBase = isset($this->db->TipoBase) ? $this->db->TipoBase : 'MySQL';
+        $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
 
         //Depois tenho que altrar.
-        $dataBase = $dataBase != '' ? $dataBase : $this->db->conexaoPadrao;
+        $dataBase = $dataBase != '' ? $dataBase : $this->conexaoPadrao;
 
         return $this->Conexoes[$dataBase]->affected_rows;
 
@@ -1451,7 +1454,7 @@ class ConClasseGeral
     {
         $array = array();
         $this->conecta();
-        $base = $this->db->MyBase;
+        $base = $this->MyBase;
         $sql = 'SHOW TABLES FROM ' . $base;
         $res = $this->executasql($sql);
         while ($lin = $this->retornosql($res)) {
@@ -2046,7 +2049,7 @@ class ConClasseGeral
         $res = $this->executasql($sql, $dataBase);
 
         if ($res) {
-            if (!in_array($tabela, $this->db->tabelasSemLog) && $inserirLog && count($oldValue) > 0) {
+            if (!in_array($tabela, $this->tabelasSemLog) && $inserirLog && count($oldValue) > 0) {
                 $sN['tabela'] = $tabelaOriginal;
                 $sN['comparacao'][] = ['int', $campo_chave, '=', $dados[$campo_chavem]];
                 $dadosLog = $this->retornosqldireto($sN, 'montar', $tabelaOriginal)[0];
@@ -2107,7 +2110,7 @@ class ConClasseGeral
                 " AND $campo_chave_relacionada > 0";
             $oldValor = json_encode($this->retornosqldireto("select * from $tabela_relacionada where $campo_chave = $chave", '', $tabela_relacionada));
             $resi = $this->executasql($sqli, $dataBaseTR);
-            if ($resi && !in_array($tabela_relacionada, $this->db->tabelasSemLog)) {
+            if ($resi && !in_array($tabela_relacionada, $this->tabelasSemLog)) {
                 $this->incluirLog($tabela_relacionada, 0, 'Exclusão', $oldValor);
             }
         }
@@ -2124,7 +2127,7 @@ class ConClasseGeral
         $res = $this->executasql($sql, $dataBase);
 
         if ($res) {
-            if (!in_array($tabela, $this->db->tabelasSemLog)) {
+            if (!in_array($tabela, $this->tabelasSemLog)) {
                 $this->incluirLog($tabela, $chave, 'Exclusão', $valor);
             }
 
@@ -2284,7 +2287,7 @@ class ConClasseGeral
 
 
         if ($this->executasql($sql, $dataBase)) {
-            if (!in_array($tabela, $this->db->tabelasSemLog) && $inserirLog) {
+            if (!in_array($tabela, $this->tabelasSemLog) && $inserirLog) {
                 $dadosLog = $this->retornosqldireto("select * from $tabelaOriginal where $campo_chave = $nova_chave", '', $tabela);
                 $dadosLog = $dadosLog[0];
                 $this->incluirLog($tabela, $nova_chave, 'Inclusão', '', $dadosLog);
@@ -2670,7 +2673,7 @@ class ConClasseGeral
         $tabelas = array();
 
         $this->conecta();
-        $base = $this->db->MyBase;
+        $base = $this->MyBase;
         //Selecionando as tabelas da base que contem o campo passado para a funçao
         $sql1 = "SELECT TABLE_NAME FROM `INFORMATION_SCHEMA`.`COLUMNS`";
         $sql1 .= " WHERE COLUMN_NAME = '$campo' AND SUBSTRING(TABLE_NAME FROM 1 FOR 4) != 'VIEW'";

@@ -41,17 +41,6 @@ class ClasseGeral extends ConClasseGeral
     );
 
     /**
-     * Construtor da ClasseGeral.
-     * Inicializa timezone e define o caminho das funções utilitárias.
-     */
-    public function __construct()
-    {
-        clearstatcache();
-        date_default_timezone_set('America/Sao_Paulo');
-       // $this->funcoes = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/BaseArcabouco/funcoes.class.php';
-    }
-
-    /**
      * Formata uma URL de vídeo do YouTube para o formato embed.
      *
      * @param string $url URL do vídeo.
