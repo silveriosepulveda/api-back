@@ -48,7 +48,7 @@ class ClasseGeral extends ConClasseGeral
     {
         clearstatcache();
         date_default_timezone_set('America/Sao_Paulo');
-        $this->funcoes = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/BaseArcabouco/funcoes.class.php';
+       // $this->funcoes = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/BaseArcabouco/funcoes.class.php';
     }
 
     /**
