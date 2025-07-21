@@ -9,8 +9,7 @@
     "ext-curl": "*",
     "firebase/php-jwt": "^6.11",
     "ext-pcntl": "*",
-    "monolog/monolog": "^3.9",
-    "silveriosepulveda/classegeral": "dev-main",
+    "monolog/monolog": "^3.9",    
     "mpdf/mpdf": "^8.2",
     "phpmailer/phpmailer": "^6.10",
     "ext-iconv": "*"
