@@ -502,7 +502,8 @@ class ConClasseGeral extends dadosConexao
      */
     public function executasql($sql, $dataBase = '')
     {
-        $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+       // $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+       $TipoBase = 'MySQL';
         
         $dataBase = $this->pegaDataBase('', $dataBase);
 
@@ -518,7 +519,7 @@ class ConClasseGeral extends dadosConexao
                 $this->desconecta($dataBase);
             }            
         } else if ($TipoBase === 'SQLite') {
-            $retorno = $this->ConexaoBase->query($sql);
+            //$retorno = $this->ConexaoBase->query($sql);
         }
         return $retorno;
     }
@@ -531,7 +532,8 @@ class ConClasseGeral extends dadosConexao
      */
     public function retornosql($resultado)
     {        
-        $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+        //$TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+        $TipoBase = 'MySQL';
         if ($TipoBase === 'MySQL') {
             if ($resultado) {
                 return $resultado->fetch_assoc();
@@ -1026,7 +1028,8 @@ class ConClasseGeral extends dadosConexao
      */
     public function linhasafetadas($dataBase = '')
     {
-        $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+        //$TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+        $TipoBase = 'MySQL';
 
         //Depois tenho que altrar.
         $dataBase = $dataBase != '' ? $dataBase : $this->conexaoPadrao;
@@ -1450,20 +1453,20 @@ class ConClasseGeral extends dadosConexao
      *
      * @return array Lista de tabelas da base de dados.
      */
-    public function tabelasbase()
-    {
-        $array = array();
-        $this->conecta();
-        $base = $this->MyBase;
-        $sql = 'SHOW TABLES FROM ' . $base;
-        $res = $this->executasql($sql);
-        while ($lin = $this->retornosql($res)) {
-            $tabela = $lin['Tables_in_' . $base];
-            $array[] = $tabela;
-        }
-        $array = json_encode($array);
-        echo $array;
-    }
+    // public function tabelasbase($dataBase ='' )
+    // {
+    //     $array = array();
+    //     $this->conecta();
+    //     $base = $dataBase;
+    //     $sql = 'SHOW TABLES FROM ' . $base;
+    //     $res = $this->executasql($sql);
+    //     while ($lin = $this->retornosql($res)) {
+    //         $tabela = $lin['Tables_in_' . $base];
+    //         $array[] = $tabela;
+    //     }
+    //     $array = json_encode($array);
+    //     echo $array;
+    // }
 
     /**
      * Retorna as tabelas que possuem um determinado campo.
@@ -2673,7 +2676,8 @@ class ConClasseGeral extends dadosConexao
         $tabelas = array();
 
         $this->conecta();
-        $base = $this->MyBase;
+        //$base = $this->MyBase;
+        $base = $this->conexaoPadrao;
         //Selecionando as tabelas da base que contem o campo passado para a funçao
         $sql1 = "SELECT TABLE_NAME FROM `INFORMATION_SCHEMA`.`COLUMNS`";
         $sql1 .= " WHERE COLUMN_NAME = '$campo' AND SUBSTRING(TABLE_NAME FROM 1 FOR 4) != 'VIEW'";
