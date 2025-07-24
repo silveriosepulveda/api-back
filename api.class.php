@@ -23,6 +23,7 @@
 //header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
 //header('Access-Control-Allow-Methods: POST, GET');
 
+
 //Instanciando o arquivo funcoes.class.php e vou tentar utilizado nos demais arquivos sem precisar instancia-lo novamente.
 
 use Psr\Http\Message\ResponseInterface as Response;
@@ -35,6 +36,29 @@ require __DIR__ . '/vendor/autoload.php';
 $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
+$secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
+
+$authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
+    $sessionId = $request->getHeaderLine('x-session-id');
+
+    if($sessionId){
+        session_id($sessionId);
+    }
+    @session_start();
+
+//    $response = new \Slim\Psr7\Response();
+//
+//    $authHeader = $request->getHeaderLine('Authorization');
+//
+//    if (!$authHeader || $authHeader !== $secretKey) {
+//        $response->withStatus(401)->withHeader('Content-Type', 'application/json')->getBody()->write(json_encode(['erro' => 'Não Autorizado!']));
+//        return $response;
+//    }
+
+
+    return $handler->handle($request);
+};
+
 $app->add(function (Request $request, $handler) {
     $response = $handler->handle($request);
 
@@ -42,16 +66,15 @@ $app->add(function (Request $request, $handler) {
     $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
     date_default_timezone_set('America/Sao_Paulo');
 
+    // Garantir que o CORS permita headers customizados
     return $response
         ->withHeader('Access-Control-Allow-Origin', '*')
-        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-Session-Id, teste')
         ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 });
 
 $app->addRoutingMiddleware();
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
-
-@session_start();
 
 function descriptografaarray($valor)
 {
@@ -113,7 +136,7 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
     global $caminho;
 
     if (in_array($API, array_keys($configuracoesAPIs))) {
-        @session_start();
+        // @session_start(); // Removido, agora feito no middleware
         $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 
         if (substr($parametros, 0, 1) == '{') {
@@ -159,7 +182,10 @@ $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Resp
     return $response;
 });
 
+
+
 $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $argumentos) {
+
     $tabela = $argumentos['tabela'];
     $funcaoExecutar = $argumentos['funcao_executar'];
     $parametros = $argumentos['parametros'];
@@ -209,7 +235,7 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
 
     $response->getBody()->write($classe->$funcaoExecutar($parametros));
     return $response;
-});
+})->add($authMiddleware);
 
 $app->post('/{tabela}/{funcao}', function (Request $request, Response $response, $argumentos) {
     continuar();
@@ -246,6 +272,14 @@ $app->post('/anexarArquivos', function (Request $request, Response $response, $a
     $response->getBody()->write($anexar->anexarArquivos($_POST, $_FILES));
     return $response;
     //return $anexar->anexarArquivos($_POST, $_FILES);
+});
+
+// Rota global para responder a preflight CORS
+$app->options('/{routes:.+}', function ($request, $response, $args) {
+    return $response
+        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-Session-Id')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 });
 
 $app->run();
