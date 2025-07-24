@@ -1,16 +1,16 @@
 <?php
-//ini_set('display_errors', 1);
-//ini_set('display_startup_errors', 1);
-//error_reporting(E_ALL);
-//register_shutdown_function(function() {
-//    $error = error_get_last();
-//    if ($error !== null) {
-//        return json_encode(print_r($error, true));
-//        //echo "<pre>Erro fatal: ";
-//      //  print_r($error);
-//        //echo "</pre>";
-//    }
-//});
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null) {
+        //return json_encode(print_r($error, true));
+        echo "<pre>Erro fatal: ";
+        print_r($error);
+        echo "</pre>";
+    }
+});
 
 /**
  * Created by PhpStorm.
@@ -23,7 +23,6 @@
 //header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
 //header('Access-Control-Allow-Methods: POST, GET');
 
-
 //Instanciando o arquivo funcoes.class.php e vou tentar utilizado nos demais arquivos sem precisar instancia-lo novamente.
 
 use Psr\Http\Message\ResponseInterface as Response;
@@ -35,6 +34,19 @@ require __DIR__ . '/vendor/autoload.php';
 
 $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
+
+$app->add(function (Request $request, $handler) {
+    $response = $handler->handle($request);
+
+    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
+    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+    date_default_timezone_set('America/Sao_Paulo');
+
+    return $response
+        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-Session-Id')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+});
 
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
@@ -58,20 +70,6 @@ $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
 
     return $handler->handle($request);
 };
-
-$app->add(function (Request $request, $handler) {
-    $response = $handler->handle($request);
-
-    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
-    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
-    date_default_timezone_set('America/Sao_Paulo');
-
-    // Garantir que o CORS permita headers customizados
-    return $response
-        ->withHeader('Access-Control-Allow-Origin', '*')
-        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-Session-Id, teste')
-        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-});
 
 $app->addRoutingMiddleware();
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
@@ -136,7 +134,7 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
     global $caminho;
 
     if (in_array($API, array_keys($configuracoesAPIs))) {
-        // @session_start(); // Removido, agora feito no middleware
+        @session_start();
         $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 
         if (substr($parametros, 0, 1) == '{') {
@@ -182,10 +180,7 @@ $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Resp
     return $response;
 });
 
-
-
 $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $argumentos) {
-
     $tabela = $argumentos['tabela'];
     $funcaoExecutar = $argumentos['funcao_executar'];
     $parametros = $argumentos['parametros'];
@@ -274,7 +269,6 @@ $app->post('/anexarArquivos', function (Request $request, Response $response, $a
     //return $anexar->anexarArquivos($_POST, $_FILES);
 });
 
-// Rota global para responder a preflight CORS
 $app->options('/{routes:.+}', function ($request, $response, $args) {
     return $response
         ->withHeader('Access-Control-Allow-Origin', '*')

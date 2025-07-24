@@ -1059,7 +1059,7 @@ class ConClasseGeral extends dadosConexao
             $retorno = $valor != '' && $valor != null ? (int)$valor : $valor;
 
         } else if ($tipo == 'float' || $tipo == 'double' || $tipo == 'decimal' || $tipo == 'real') {
-            if (sizeof(explode(',', $valor)) > 1) {                
+            if (sizeof(explode(',', $valor ?? '')) > 1) {
                 $valor = str_replace('.', '', $valor);
                 $valor = str_replace(',', '.', $valor);
             }
