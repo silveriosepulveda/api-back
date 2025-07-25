@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 register_shutdown_function(function() {
     $error = error_get_last();
     if ($error !== null) {
-        //return json_encode(print_r($error, true));
+        return json_encode(print_r($error, true));
         echo "<pre>Erro fatal: ";
         print_r($error);
         echo "</pre>";
@@ -250,7 +250,9 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
     }
     $response->getBody()->write($classe->$funcao($_POST));
     return $response;
-});
+})
+    ->add($authMiddleware)
+;
 
 //Anexar Arquivos
 $app->post('/anexarArquivos', function (Request $request, Response $response, $argumentos) {
@@ -267,7 +269,7 @@ $app->post('/anexarArquivos', function (Request $request, Response $response, $a
     $response->getBody()->write($anexar->anexarArquivos($_POST, $_FILES));
     return $response;
     //return $anexar->anexarArquivos($_POST, $_FILES);
-});
+})->add($authMiddleware);
 
 $app->options('/{routes:.+}', function ($request, $response, $args) {
     return $response
