@@ -9,16 +9,14 @@
 //$arqcon = is_file("../BaseArcabouco/bancodedados/conexao.php") ? "../BaseArcabouco/bancodedados/conexao.php" : "BaseArcabouco/bancodedados/conexao.php";
 //require_once $arqcon;
 
-class usuarios extends \ClasseGeral\ConClasseGeral
+class usuariosApi extends \ClasseGeral\ConClasseGeral
 {
-    function __construct()
+    public function validarLoginUsuario($parametros)
     {
-        clearstatcache();
-       // $con = new conexao;
-        date_default_timezone_set('America/Sao_Paulo');
+        $usuario = $this->buscaUsuarioLogado();
+        $logado = isset($usuario) && $usuario['chave_usuario'] == $parametros['chave_usuario'] && $usuario['sessao'] == $parametros['sessao'];
+        return json_encode(['sucesso' => $logado, 'usuario' => $usuario]);
     }
-
-    private $funcoes = "BaseArcabouco/funcoes.class.php";
 
     public function logarUsuario($parametros)
     {
@@ -159,6 +157,7 @@ class usuarios extends \ClasseGeral\ConClasseGeral
             }
 
             $r['menus'] = $menus;
+            $r['sessionId'] = session_id();
             $ms->setar('ultimo_acesso', $r['ultimo_acesso']);
             $ms->setar('menu', $menus);
         } else {
@@ -198,7 +197,7 @@ class usuarios extends \ClasseGeral\ConClasseGeral
         }
 
         if ($tipoRetorno == 'json' || $tipoRetorno = '*') {
-            echo json_encode($menus);
+            return json_encode($menus);
         } else if ($tipoRetorno == 'array') {
             return $menus;
         }
@@ -302,12 +301,12 @@ class usuarios extends \ClasseGeral\ConClasseGeral
     public function salvarPerfilUsuario($parametros)
     {
         $chave_usuario = $parametros['chave_usuario'];
-        $chave_perfil_padrao = $parametros['chave_perfil_padrao'];
+        $chave_perfil_padrao = $parametros['chave_perfil_padrao'] ?? 0;
         $menus = json_decode($parametros['menus'], true);
 
         $usuario['chave_cadastro'] = $chave_usuario;
         $usuario['chave_perfil_padrao'] = $chave_perfil_padrao;
-        $this->altera('tb_cadastros', $usuario, $chave_usuario, true);
+        $this->altera('tb_cadastros', $usuario, $chave_usuario, false);
 
         $sqlDel = 'delete from usuarios_perfil where chave_usuario = ' . $chave_usuario . ' and chave_perfil > 0';
         $dataBase = $this->pegaDataBase('usuarios');
@@ -330,20 +329,21 @@ class usuarios extends \ClasseGeral\ConClasseGeral
                                 if (isset($acao['selecionado']) && $acao['selecionado'] && !$acaoPadrao) {
                                     $temAcoes = true;
                                     $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_acao' => $chave_acao);
-                                    $this->inclui('usuarios_perfil', $inc, 0, true);
+                                    $this->inclui('usuarios_perfil', $inc, 0, false);
                                 }
                             }
                         }
 
                         if (!$temAcoes && !$itemPadrao) {
                             $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
-                            $this->inclui('usuarios_perfil', $inc, 0, true);
+                            $this->inclui('usuarios_perfil', $inc, 0, false);
                         }
                     }
 
                 }
             }
         }
+        return json_encode(['sucesso' => 'Sucesso']);
         //*/
     }
 
@@ -362,6 +362,6 @@ class usuarios extends \ClasseGeral\ConClasseGeral
         $dados = json_decode($parametros['dados'], true);
 
         $this->altera('tb_cadastros', $dados);
-        echo json_encode(array('chave' => $dados['chave_usuario']));
+        return json_encode(array('chave' => $dados['chave_usuario']));
     }
 }

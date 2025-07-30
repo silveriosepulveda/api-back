@@ -2,7 +2,7 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-register_shutdown_function(function() {
+register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null) {
         return json_encode(print_r($error, true));
@@ -53,7 +53,7 @@ $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
     $sessionId = $request->getHeaderLine('x-session-id');
 
-    if($sessionId){
+    if ($sessionId) {
         session_id($sessionId);
     }
     @session_start();
@@ -124,6 +124,7 @@ function validaApi($apiKey)
 {
     return $apiKey == 'apiKey';
 }
+
 $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $args) {
     $API = $args['API'];
     $tabela = $args['tabela'];
@@ -217,15 +218,15 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
         //Fazendo alteracoes para adaptar a APILocal
         //if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php')) {
         $arq = '';
-        $arq = $conex->pegaCaminhoApi() . 'api/backLocal/classes/' . $tabela . '.class.php';
+    $arq = $conex->pegaCaminhoApi() . 'api/backLocal/classes/' . $tabela . '.class.php';
 
-        if (is_file($arq)) {
-            require_once($arq);
-            $classe = new $tabela();
-        } elseif (is_file('classes/' . $tabela . '.class.php')) {
-            require_once('classes/' . $tabela . '.class.php');
-            $classe = new $tabela();
-        }
+    if (is_file($arq)) {
+        require_once($arq);
+        $classe = new $tabela();
+    } elseif (is_file('classes/' . $tabela . '.class.php')) {
+        require_once('classes/' . $tabela . '.class.php');
+        $classe = new $tabela();
+    }
 
 
     $response->getBody()->write($classe->$funcaoExecutar($parametros));
@@ -237,22 +238,28 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
     $tabela = $argumentos['tabela'];
     $funcao = $argumentos['funcao'];
 
-    if($tabela == 'classeGeral') {
+
+    if ($tabela == 'classeGeral') {
         $classe = new \ClasseGeral\ClasseGeral();
     } else {
+        require_once 'vendor/autoload.php';;
+        $conex = new \ClasseGeral\ClasseGeral();
+
         //Fazendo alteracoes para adaptar a APILocal
-        if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php')) {
-            require_once($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php');
-        } else if (is_file('classes/' . $tabela . '.class.php')) {
+        $arq = '';
+        $arq = $conex->pegaCaminhoApi() . 'api/backLocal/classes/' . $tabela . '.class.php';
+
+        if (is_file($arq))
+            require_once($arq);
+        elseif (is_file('classes/' . $tabela . '.class.php'))
             require_once('classes/' . $tabela . '.class.php');
-        }
+
         $classe = new $tabela();
     }
     $response->getBody()->write($classe->$funcao($_POST));
     return $response;
 })
-    ->add($authMiddleware)
-;
+    ->add($authMiddleware);
 
 //Anexar Arquivos
 $app->post('/anexarArquivos', function (Request $request, Response $response, $argumentos) {

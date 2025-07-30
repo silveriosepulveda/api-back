@@ -135,8 +135,9 @@ class ConClasseGeral extends dadosConexao
         $camposObrigatorios = $configuracao['camposObrigatorios'];
 
         if (isset($camposObrigatorios['ignorarObrigatorio'])) {
-            require_once $this->pegaCaminhoApi() . 'api/BaseArcabouco/funcoes.class.php';
-            $compara = new manipulaValores();
+            //require_once $this->pegaCaminhoApi() . 'api/BaseArcabouco/funcoes.class.php';
+            //$compara = new manipulaValores();
+            $compara = new \ClasseGeral\ManipulaValores();
             $camposIgnorar = $camposObrigatorios['ignorarObrigatorio'];
             unset($camposObrigatorios['ignorarObrigatorio']);
         }
@@ -348,7 +349,7 @@ class ConClasseGeral extends dadosConexao
      * @param string $tiporetorno (Opcional) Tipo de retorno desejado.
      * @return array Lista de campos da tabela.
      */
-    public function campostabela($tabela, $dataBase = '', $tiporetorno = 'padrao')
+    public function campostabela($tabela, $dataBase = '', $tiporetorno = 'padrao', $origem = '')
     {
         $tabela = is_string($tabela) ? strtolower($tabela) : '';
 
@@ -606,6 +607,7 @@ class ConClasseGeral extends dadosConexao
     public function retornosqldireto($sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true)
     {
         $retorno = [];
+
 
         $dataBase = $this->pegaDataBase($tabela, $dataBase);
 
@@ -1129,7 +1131,13 @@ class ConClasseGeral extends dadosConexao
         $classe = $this->nomeClase($classeEntrada);
 
         $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
-        $arquivo = $caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php';
+
+        $arquivo = '';
+        //Implementando a comparacao para configuracoesMenus que está em api-back e não em backLocal
+        if($classe == 'configuracaoMenus')
+            $arquivo = $caminhoAPILocal . 'api/api-back/classes/' . $classe . '.class.php';
+        else
+            $arquivo = $caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php';
 
         if (file_exists($arquivo)) {
             require_once($arquivo);
@@ -2168,7 +2176,8 @@ class ConClasseGeral extends dadosConexao
         $dados = array_change_key_case($dados, CASE_LOWER);
 
         $tabelaOriginal = $tabela;
-        $tabela = $this->nometabela($tabela);
+        $confTabela = $this->buscaConfiguracoesTabela($tabela);
+        $tabela = isset($confTabela['tabelaOrigem']) ? $this->nometabela($confTabela['tabelaOrigem']) : $this->nometabela($tabela);
         $dataBase = $this->pegaDataBase($tabelaOriginal);
 
         //Pegando os campos da tabela

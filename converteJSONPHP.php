@@ -7,8 +7,8 @@
 
 if (isset($_FILES) && sizeof($_FILES) > 0) {
     $q = "\n";
-    @session_start();
-    $caminhoApi = @$_SESSION[session_id()]['caminhoApiLocal'];
+
+    $caminhoApi = $_SERVER['DOCUMENT_ROOT'];
 
     $json = file_get_contents($_FILES['variavel']['tmp_name']);
     $array = json_decode($json, true);
@@ -23,22 +23,22 @@ if (isset($_FILES) && sizeof($_FILES) > 0) {
     $temp = explode('.', $_FILES['variavel']['name']);
     $novoNome = $temp[0] . '.class.php';
 
-    $arquivo = fopen($caminhoApi . 'apiLocal/tmpls/' . $novoNome, 'w+');
+    $arquivo = fopen($caminhoApi . '/api/backLocal/tmpls/' . $novoNome, 'w+');
     fwrite($arquivo, '<?php' . $q);
-    fwrite($arquivo, '@session_start();' . $q);
-    fwrite($arquivo, '$caminho = $_SESSION[session_id()]["caminhoApiLocal"];' . $q);
-    fwrite($arquivo, '$arqcon = $caminho . "api/classes/classeGeral.class.php";' . $q);
-    fwrite($arquivo, 'include_once $arqcon;' . $q);
+   // fwrite($arquivo, '@session_start();' . $q);
+    //fwrite($arquivo, '$caminho = $_SESSION[session_id()]["caminhoApiLocal"];' . $q);
+    //fwrite($arquivo, '$arqcon = $caminho . "api/classes/classeGeral.class.php";' . $q);
+    //fwrite($arquivo, 'include_once $arqcon;' . $q);
 
-    fwrite($arquivo, 'class ' . $temp[0] . ' extends classeGeral {' . $q);
-    fwrite($arquivo, '    private $funcoes = "BaseArcabouco/funcoes.class.php";' . $q);
-    fwrite($arquivo, '    private $tabela = "' . $tabela . '";' . $q);
-    fwrite($arquivo, '    private $tabelaConsulta = "' . $tabelaConsulta . '";' . $q);
-    fwrite($arquivo, '    private $campoChave = "' . $campoChave . '";' . $q);
-    fwrite($arquivo, '    private $campoValor = "' . $campoValor . '";' . $q);
-    fwrite($arquivo, '    function __construct(){' . $q);
-    fwrite($arquivo, "        date_default_timezone_set('America/Sao_Paulo');" . $q);
-    fwrite($arquivo, '    }' . $q . $q);
+    fwrite($arquivo, 'class ' . $temp[0] . ' extends \ClasseGeral\ClasseGeral {' . $q);
+    fwrite($arquivo, '    private string $funcoes = "BaseArcabouco/funcoes.class.php";' . $q);
+    fwrite($arquivo, '    private string $tabela = "' . $tabela . '";' . $q);
+    fwrite($arquivo, '    private string $tabelaConsulta = "' . $tabelaConsulta . '";' . $q);
+    fwrite($arquivo, '    private string $campoChave = "' . $campoChave . '";' . $q);
+    fwrite($arquivo, '    private string $campoValor = "' . $campoValor . '";' . $q);
+  //  fwrite($arquivo, '    function __construct(){' . $q);
+   // fwrite($arquivo, "        date_default_timezone_set('America/Sao_Paulo');" . $q);
+   // fwrite($arquivo, '    }' . $q . $q);
 
     fwrite($arquivo, 'public function estrutura(){' . $q);
     fwrite($arquivo, '    return ' . var_export($array, true) . ';' . $q);

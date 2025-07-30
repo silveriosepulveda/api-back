@@ -167,14 +167,18 @@ class ClasseGeral extends ConClasseGeral
         $limite = isset($p['limite']) && $p['limite'] > 0 ? $p['limite'] : 0;
 
         $tabela = $p['tabela'];
+        $tabelaConsulta = $p['tabelaConsulta'] ?? $tabela;
+        $configuracoesTabela = $this->buscaConfiguracoesTabela($tabelaConsulta);
+        $tabelaConsulta = $configuracoesTabela['tabelaConsulta'] ?? $tabelaConsulta;
+
+        //$tabela = $configuracoesTabela['tabelaOrigem'] ?? $tabela;
+
         $p['campo_chave'] = $p['campo_chave'] ?? strtolower($this->campochavetabela($p['tabela']));
 
-        $tabelaConsulta = $p['tabelaConsulta'] ?? $tabela;
         $temCampoDisponivelNoFiltro = false;
 
         $sessao = new \ClasseGeral\ManipulaSessao();
 
-        $configuracoesTabela = $this->buscaConfiguracoesTabela($tabelaConsulta);
         $valoresConsiderarDisponivel = array_merge(['S'], $configuracoesTabela['valoresConsiderarDisponivel'] ?? []);
 
         $s['tabela'] = $tabela;
@@ -797,8 +801,8 @@ class ClasseGeral extends ConClasseGeral
         $chave = 0;
         $p = $parametros;
 
-        @session_start();
-        $caminhoApiLocal = $_SESSION[session_id()]['caminhoApiLocal'];
+
+        $caminhoApiLocal = $this->pegaCaminhoApi();// $_SESSION[session_id()]['caminhoApiLocal'];
 
         $dados = is_array($p['dados']) ? $p['dados'] : json_decode($p['dados'], true);
 
@@ -826,6 +830,9 @@ class ClasseGeral extends ConClasseGeral
         }
 
         $tabelaOriginal = $conf['tabela'];
+        $confTabela = $this->buscaConfiguracoesTabela($tabelaOriginal);
+        $tabelaOriginal = $confTabela['tabelaOrigem'] ?? $tabelaOriginal;
+
         $tabela = $this->nometabela($conf['tabela']);
 
         //Esta variavel entrou para poder usar uma classe diferente do nome da tabela
@@ -843,6 +850,10 @@ class ClasseGeral extends ConClasseGeral
         if ($anexoObrigatorio && !$temArquivos) {
             return json_encode(['erro' => 'Não Há Anexos']);
         }
+
+        foreach ($confLocal['camposIgnorarEdicao'] ?? [] as $campo)
+            if (isset($dados[$campo]))
+                unset($dados[$campo]);
 
         $camposObrigatoriosVazios = $this->validarCamposObrigatorios($confLocal, $dados);
 
@@ -930,7 +941,7 @@ class ClasseGeral extends ConClasseGeral
         }
 
         if ($chave == null || $chave == 'null') {
-            return 'Erro ao Incluir';
+            return json_encode(['erro' =>  'Erro ao Incluir']);
         }
 
 

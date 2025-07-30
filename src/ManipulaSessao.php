@@ -41,6 +41,7 @@ class ManipulaSessao
     public function pegar($var)
     {
        // @session_start();
+        $temp = $_SESSION;
         $id = session_id();
         $c = explode(',', $var);
         $tamanho = sizeof($c);
