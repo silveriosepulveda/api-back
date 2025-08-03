@@ -26,8 +26,9 @@ class listas extends \ClasseGeral\ConClasseGeral
     public function nomesListas()
     {
         //$sql = 'select distinct(nome_apresentar), nome  from listas order by nome_apresentar';
-        $sql = 'select distinct nome  from listas order by nome';
-        return json_encode($this->retornosqldireto($sql, '', 'listas'));
+        $sql = 'select distinct(nome)  from listas order by nome';
+        $listas = $this->retornosqldireto($sql, '', 'listas');
+        return json_encode($listas);
     }
 
     public function buscarLista($lista)

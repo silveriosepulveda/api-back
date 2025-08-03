@@ -19,10 +19,6 @@ register_shutdown_function(function () {
  * Time: 16:30 teste
  */
 
-//header('Access-Control-Allow-Origin: *');
-//header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
-//header('Access-Control-Allow-Methods: POST, GET');
-
 //Instanciando o arquivo funcoes.class.php e vou tentar utilizado nos demais arquivos sem precisar instancia-lo novamente.
 
 use Psr\Http\Message\ResponseInterface as Response;
@@ -51,7 +47,7 @@ $app->add(function (Request $request, $handler) {
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
-    $sessionId = $request->getHeaderLine('x-session-id');
+    $sessionId = '9tcongok1dreeamrtcnd4diou1';// $request->getHeaderLine('x-session-id');
 
     if ($sessionId) {
         session_id($sessionId);

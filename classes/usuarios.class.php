@@ -87,7 +87,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
             $r['usuario']['chave_acesso'] = $chave_acesso;
 
             //Buscando os menus disponiveis para o usuario
-            $sqlM = "select chave_menu, menu from menus where chave_menu > 0 ";
+            $sqlM = "select chave_menu, menu from menus where chave_menu > 0 and disponivel = 'S'";
             if (strlen($chavesMenus) > 0) {
                 $sqlM .= " and chave_menu in ($chavesMenus)";
             } else if (!$administrador) {
@@ -114,7 +114,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                 $menuItens = $this->retornosqldireto($sqlI, '', 'menus_itens');
 
                 foreach ($menuItens as $menuItem) {
-                    $sqlA = "select acao, descricao from menus_itens_acoes where chave_item = $menuItem[chave_item]";
+                    $sqlA = "select acao, descricao from menus_itens_acoes where chave_item = $menuItem[chave_item] and disponivel = 'S'";
                     if (strlen($chavesAcoes) > 0) {
                         $sqlA .= " and chave_acao in ($chavesAcoes)";
                     } else if (!$administrador) {
@@ -132,7 +132,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                         );
                     }
 
-                    $sqlC = "select campo, descricao from menus_itens_campos where chave_item = $menuItem[chave_item]";
+                    $sqlC = "select campo, descricao from menus_itens_campos where chave_item = $menuItem[chave_item] and disponivel =- 'S'";
 
                     if (strlen($chavesCampos) > 0) {
                         $sqlC .= " and chave_campo in ($chavesCampos)";
@@ -171,21 +171,22 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
 
     public function buscarMenusConfiguracoes($tipoRetorno = 'json')
     {
-        $sql = 'select * from menus order by posicao';
+        $sql = 'select * from menus where disponivel = "S" order by posicao';
         $menus = $this->retornosqldireto($sql, '', 'menus');
         foreach ($menus as $keyMenu => $menu) {
-            $sqlSM = "select chave_item, item, posicao, link, pagina, acao, subacao from menus_itens where chave_menu = $menu[chave_menu] order by posicao";
+            $sqlSM = "select chave_item, item, posicao, link, pagina, acao, subacao from menus_itens 
+                            where chave_menu = $menu[chave_menu] and disponivel = 'S' order by posicao";
             $itens = $this->retornosqldireto($sqlSM, '', 'menus_itens');
 
             foreach ($itens as $keyItem => $item) {
-                $sqlA = "select chave_acao, acao, titulo_acao, descricao from menus_itens_acoes where chave_item = $item[chave_item]";
+                $sqlA = "select chave_acao, acao, titulo_acao, descricao from menus_itens_acoes where chave_item = $item[chave_item] and disponivel = 'S'";
                 $acoes = $this->retornosqldireto($sqlA, '', 'menus_itens_acoes');
                 foreach ($acoes as $keyA => $acao) {
                     $acoes[$keyA]['titulo_acao'] = $acao['titulo_acao'] != '' ? $acao['titulo_acao'] : $acao['acao'];
                 }
                 $itens[$keyItem]['acoes'] = $acoes;
 
-                $sqlC = "select chave_campo, campo, titulo_campo, descricao from menus_itens_campos where chave_item = $item[chave_item]";
+                $sqlC = "select chave_campo, campo, titulo_campo, descricao from menus_itens_campos where chave_item = $item[chave_item] and disponivel = 'S'";
                 $campos = $this->retornosqldireto($sqlC, '', 'menus_itens_campos');
                 foreach ($campos as $keyC => $campo) {
                     $campos[$keyC]['titulo_campo'] = $campo['titulo_campo'] != '' ? $campo['titulo_campo'] : $campo['campo'];
@@ -210,7 +211,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         $chave_perfil_padrao = $usuario['chave_perfil_padrao'];
         $perfilPadrao = $chave_perfil_padrao > 0 ? $this->buscarPerfilPadrao($chave_perfil_padrao, 'array') : [];
 
-        $sql = 'select * from usuarios_perfil where chave_usuario = ' . $chave_usuario;
+        $sql = 'select *, "Pessoal" as tipo_perfil from usuarios_perfil where chave_usuario = ' . $chave_usuario;
         $perfilUsuario = $this->retornosqldireto($sql, '', 'usuarios');
 
         $retorno = array_merge($perfilPadrao, $perfilUsuario);
@@ -224,7 +225,8 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
 
     public function buscarPerfilPadrao($chave_perfil_padrao, $tipo_retorno = 'json')
     {
-        $sql = 'select chave_menu, chave_item, chave_acao, chave_campo from usuarios_perfil_padrao_itens where chave_perfil_padrao = ' . $chave_perfil_padrao;
+        $sql = 'select chave_menu, chave_item, chave_acao, chave_campo, "Padrao" as tipo_perfil from usuarios_perfil_padrao_itens 
+                    where chave_perfil_padrao = ' . $chave_perfil_padrao;
         $itens = $this->retornosqldireto($sql, '', 'usuarios_perfil_padrao_itens');
         if ($tipo_retorno == 'json') {
             return json_encode($itens);
@@ -236,7 +238,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
     public function salvarPerfilPadrao($parametros)
     {
         $novoPerfil = $parametros['novoPerfil'];
-        $chave_perfil_padrao = $parametros['chave_perfil_padrao'];
+        $chave_perfil_padrao = (int) $parametros['chave_perfil_padrao'] > 0 ? $parametros['chave_perfil_padrao'] : 0;
 
         $dataBase = $this->pegaDataBase('usuarios_perfil_padrao');
 
@@ -246,7 +248,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
             $chave = $chave_perfil_padrao;
         } else {
             $dados = array('nome_perfil' => $novoPerfil);
-            $chave = $this->inclui('usuarios_perfil_padrao', $dados, 0, true);
+            $chave = $this->inclui('usuarios_perfil_padrao', $dados, 0, false);
         }
         $menus = json_decode($parametros['menus'], true);
 
@@ -254,22 +256,23 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         foreach ($menus as $valM) {
             $chave_menu = $valM['chave_menu'];
             if (isset($valM['selecionado']) && $valM['selecionado']) {
-
                 foreach ($valM['itens'] as $item) {
                     $chave_item = $item['chave_item'];
                     if (isset($item['selecionado']) && $item['selecionado']) {
+                        $temAcoes = false;
+                        $temCampos = false;
+
                         if (sizeof($item['acoes']) > 0) {
                             foreach ($item['acoes'] as $acao) {
                                 if ($acao['selecionado']) {
                                     $chave_acao = $acao['chave_acao'];
                                     $acaoIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_acao' => $chave_acao);
                                     $this->inclui('usuarios_perfil_padrao_itens', $acaoIncluir);
+                                    $temAcoes = true;
                                 }
                             }
-                        } else {
-                            $itemIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
-                            $this->inclui('usuarios_perfil_padrao_itens', $itemIncluir);
                         }
+
 
                         if (isset($item['campos']) && sizeof($item['campos']) > 0) {
                             foreach ($item['campos'] as $campo) {
@@ -277,14 +280,34 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                                     $chave_campo = $campo['chave_campo'];
                                     $campoIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_campo' => $chave_campo);
                                     $this->inclui('usuarios_perfil_padrao_itens', $campoIncluir);
+                                    $temCampos = true;
                                 }
                             }
+                        }
+
+                        if(!$temAcoes && !$temCampos){
+                            $itemIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
+                            $this->inclui('usuarios_perfil_padrao_itens', $itemIncluir);
                         }
                     }
                 }
             }
         }
+        return json_encode(['sucesso' => 'Sucesso']);
         //*/
+    }
+
+    public function excluirPerfilPadrao($chave_perfil_padrao){
+        $sqlUsuarios = "update tb_cadastros set chave_perfil_padrao = null where chave_perfil_padrao = $chave_perfil_padrao and chave_cadastro > 0";
+        $this->executasql($sqlUsuarios, '', 'tb_cadastros');
+
+        $sqlItens = "delete from usuarios_perfil_padrao_itens where chave_perfil_padrao = $chave_perfil_padrao and chave_padrao_item > 0";
+        $this->executasql($sqlItens, '', 'usuarios_perfil_padrao_itens');
+
+        $sqlPerfil = "delete from usuarios_perfil_padrao where chave_perfil_padrao = $chave_perfil_padrao";
+        $this->executasql($sqlPerfil, '', 'usuarios_perfil_padrao');
+
+        return json_encode(['sucesso' => 'Sucesso']);
     }
 
     public function temNoPerfilPadrao($perfilPadrao, $chave_menu, $chave_item, $chave_acao = 0)
@@ -318,9 +341,10 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                 foreach ($valM['itens'] as $item) {
                     $chave_item = $item['chave_item'];
                     $itemPadrao = isset($item['padrao']) && $item['padrao'];
+                    $temAcoes = false;
+                    $temCampos = false;
 
                     if (isset($item['selecionado']) && $item['selecionado']) {
-                        $temAcoes = false;
                         if (sizeof($item['acoes']) > 0) {
                             foreach ($item['acoes'] as $acao) {
                                 $chave_acao = $acao['chave_acao'];
@@ -334,7 +358,22 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                             }
                         }
 
-                        if (!$temAcoes && !$itemPadrao) {
+                        ///////////CAMPOS NO PERFIL ///////////////////////////
+                        if (sizeof($item['campos']) > 0) {
+                            foreach ($item['campos'] as $campo) {
+                                $chave_campo = $campo['chave_campo'];
+                                $campoPadrao = isset($campo['padrao']) && $campo['padrao'];
+
+                                //if (isset($campo['selecionado']) && $campo['selecionado'] && !$campoPadrao) {
+                                if (isset($campo['selecionado']) && $campo['selecionado'] && !$campoPadrao) {
+                                    $temCampos = true;
+                                    $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_campo' => $chave_campo);
+                                    $this->inclui('usuarios_perfil', $inc, 0, false);
+                                }
+                            }
+                        }
+
+                        if (!$temAcoes && !$temCampos && !$itemPadrao) {
                             $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
                             $this->inclui('usuarios_perfil', $inc, 0, false);
                         }

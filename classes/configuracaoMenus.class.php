@@ -12,7 +12,7 @@ class configuracaoMenus extends \ClasseGeral\ClasseGeral
     public function estrutura(): array
     {
         return [
-            'tipoEstrutura' => 'consultaDireta',
+            'tipoEstrutura' => 'padrao',
             'ordemConsulta' => 'posicao',
             'tabela' => 'menus',
             'campo_chave' => 'chave_menu',

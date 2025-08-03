@@ -4,7 +4,7 @@ namespace ClasseGeral;
 
 /**
  * Classe base para operações de conexão e manipulação de dados gerais.
- * 
+ *
  * Responsável por fornecer métodos utilitários para conexão com banco de dados,
  * manipulação de sessões, validação de campos obrigatórios, entre outros.
  */
@@ -12,7 +12,7 @@ namespace ClasseGeral;
 if (isset($_SESSION[session_id()]['caminhoApiLocal']))
     include $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/dadosConexao.class.php';
 else
-    include $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php' ;
+    include $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php';
 
 
 class ConClasseGeral extends dadosConexao
@@ -83,9 +83,9 @@ class ConClasseGeral extends dadosConexao
     }
 
     public function buscaUsuarioLogado()
-    {     
+    {
         $sessao = new \ClasseGeral\ManipulaSessao();
-        return $sessao->pegar('usuario');        
+        return $sessao->pegar('usuario');
     }
 
     /**
@@ -226,7 +226,7 @@ class ConClasseGeral extends dadosConexao
                                         }
 
                                         $ignorar = $this->validarCampo($valorCampoIgnorar) && $compara->compararValor($valorCampoIgnorar, $val['operador'], $valorComparar);
-                                        
+
                                         $tipoIgnorar = isset($val['tipoIgnorar']) ? $val['tipoIgnorar'] : 'e';
 
                                         if (!$ignorar) {
@@ -258,7 +258,7 @@ class ConClasseGeral extends dadosConexao
             }
         }
 
-        return $retorno;        
+        return $retorno;
     }
 
     /**
@@ -454,7 +454,7 @@ class ConClasseGeral extends dadosConexao
                 $retorno = $configuracoesTabela['dataBase'];
             else
                 //$retorno = $this->conexaoPadrao;
-                $retorno = $this->conexaoPadrao;
+                $retorno = $this->pegaConexaoPadrao();
 
         return $retorno;
     }
@@ -472,16 +472,16 @@ class ConClasseGeral extends dadosConexao
             }
 
             date_default_timezone_set('America/Sao_Paulo');
-            
+
             $servidor = $this->bases[$dataBase]['servidor'];
             $usuario = $this->bases[$dataBase]['usuario'];
             $senha = $this->bases[$dataBase]['senha'];
 
             $this->Conexoes[$dataBase] = new \mysqli($servidor, $usuario, $senha, $dataBase);
-            
+
             mysqli_set_charset($this->Conexoes[$dataBase], "utf8");
 
-        } 
+        }
     }
 
     /**
@@ -491,7 +491,7 @@ class ConClasseGeral extends dadosConexao
      */
     public function desconecta($dataBase)
     {
-        
+
     }
 
     /**
@@ -503,9 +503,9 @@ class ConClasseGeral extends dadosConexao
      */
     public function executasql($sql, $dataBase = '')
     {
-       // $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
-       $TipoBase = 'MySQL';
-        
+        // $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+        $TipoBase = 'MySQL';
+
         $dataBase = $this->pegaDataBase('', $dataBase);
 
         $this->conecta($dataBase);
@@ -516,9 +516,9 @@ class ConClasseGeral extends dadosConexao
             ini_set('error_reporting', '~E_DEPRECATED');
             $con->query('set sql_mode=""');
             $retorno = $con->query($sql);
-            if (!$retorno) {                
+            if (!$retorno) {
                 $this->desconecta($dataBase);
-            }            
+            }
         } else if ($TipoBase === 'SQLite') {
             //$retorno = $this->ConexaoBase->query($sql);
         }
@@ -527,12 +527,12 @@ class ConClasseGeral extends dadosConexao
 
     /**
      * Retorna o próximo registro de um resultado de query.
-     * 
+     *
      * @param mixed $resultado Resultado da query.
      * @return array|null Retorna os dados do próximo registro ou null se não houver mais registros.
      */
     public function retornosql($resultado)
-    {        
+    {
         //$TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
         $TipoBase = 'MySQL';
         if ($TipoBase === 'MySQL') {
@@ -566,12 +566,12 @@ class ConClasseGeral extends dadosConexao
 
             if (isset($configuracoesTabela['campoChave'])) {
                 return $configuracoesTabela['campoChave'];
-            } else {                
+            } else {
                 $base = $dataBase;
                 $sql = "SELECT c.COLUMN_NAME AS chave_primaria FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE c";
                 $sql .= " WHERE c.TABLE_SCHEMA = '$base' AND c.TABLE_NAME = '$tabela'";
                 $sql .= " AND c.CONSTRAINT_NAME = 'PRIMARY' ";
-                
+
                 $lin = $this->retornosqldireto($sql, '', $tabela)[0];
                 return $lin['chave_primaria'];
             }
@@ -837,7 +837,7 @@ class ConClasseGeral extends dadosConexao
                         $sql .= ' AND TP.' . $campo . ' ' . $operador . ' ' . $valor;
                     }
                 } else if (is_array($op[0])) { //Neste caso é uma comparação utilizando or primeiro vou fazer para duas comparações, depois posso expandir para infinitas
-                    $tipos = $op[0];                    
+                    $tipos = $op[0];
                     $campo = $op[1];
                     $operadores = $op[2];
                     $valores = $op[3];
@@ -873,7 +873,7 @@ class ConClasseGeral extends dadosConexao
 
         //Acrescentei a comparacao do campo chave, pois quando tem ) antes do collate da erro.
         $sql .= " and TP.$campo_chave >= 0 ";//collate utf8_unicode_ci ";
-        
+
         if (isset($p['ordem'])) {
             $temp = strtolower($p['ordem']);
             //Separo por virgula os campos que vao ordenar
@@ -902,7 +902,7 @@ class ConClasseGeral extends dadosConexao
             }
         }
 
-        return $sql;        
+        return $sql;
     }
 
     /**
@@ -925,17 +925,17 @@ class ConClasseGeral extends dadosConexao
      * @return mixed Valor formatado.
      */
     public function retornavalorparasql($tipo, $valor, $origem = 'consulta', $campo = '')
-    {        
+    {
         if ($valor === 'undefined')
             $valor = null;
 
         if (($tipo == 'varchar' || $tipo == 'char') && !is_array($valor)) {
-                 $valor = "'" . trim(str_replace("'", "\'", $valor), '"') . "'";
-        } else if ($tipo == 'longtext' || $tipo == 'text') {     
+            $valor = "'" . trim(str_replace("'", "\'", $valor), '"') . "'";
+        } else if ($tipo == 'longtext' || $tipo == 'text') {
             if ($valor != 'undefined') {
                 $valor = stripslashes($valor);
                 //Fazendo esta linha para salvar as ' dentro de '
-                $valor = str_replace("'", "\'", $valor);                
+                $valor = str_replace("'", "\'", $valor);
                 $valor = "'" . $valor . "'";
             } else {
                 $valor = 'null';
@@ -965,7 +965,7 @@ class ConClasseGeral extends dadosConexao
                 }
             } else if ($valor == '' || $valor == 'undefined') {
                 $valor = 'null';
-            }            
+            }
         } else if ($tipo == 'time') {
             if (strtolower($valor) != 'CURRENT_TIME')
                 $valor = "'" . $valor . "'";
@@ -1072,7 +1072,7 @@ class ConClasseGeral extends dadosConexao
         } else if ($tipo == 'urlYoutube') {
             $retorno = str_replace('watch?v=', 'embed/', $valor);
         } else if ($tipo == 'longtext' || $tipo == 'text') {
-            
+
             if (substr(trim($valor), 0, 1) == '{') {
                 $retorno = json_decode(preg_replace('/(\r\n)|\n|\r/', '\\n', $valor), true);
             } else {
@@ -1092,7 +1092,7 @@ class ConClasseGeral extends dadosConexao
                 }
             } else {
                 $retorno = '';
-            }        
+            }
         } else if ($tipo == 'time') {
             $retorno = substr($valor, 0, 5);
         } else if ($tipo == 'timestamp') {
@@ -1100,7 +1100,7 @@ class ConClasseGeral extends dadosConexao
                 $this->formatavalorexibir(explode(' ', $valor)[0], 'date') . ' ' . $this->formatavalorexibir(explode(' ', $valor)[1], 'time') : '';
         } else if ($tipo == 'varbinary') {
             $retorno = $valor;
-        } else if ($tipo == 'json') {            
+        } else if ($tipo == 'json') {
             $retorno = json_decode(preg_replace('/(\r\n)|\n|\r/', '\\n', $valor), true);
             $retorno = gettype($retorno) == 'string' ? json_decode($retorno, true) : $retorno;
         } else {
@@ -1110,6 +1110,8 @@ class ConClasseGeral extends dadosConexao
         ini_set("display_errors", 1);
         return $retorno;
     }
+
+
 
     /**
      * Busca a estrutura de uma tabela para geração de formulários, relatórios, etc.
@@ -1134,7 +1136,7 @@ class ConClasseGeral extends dadosConexao
 
         $arquivo = '';
         //Implementando a comparacao para configuracoesMenus que está em api-back e não em backLocal
-        if($classe == 'configuracaoMenus')
+        if ($classe == 'configuracaoMenus')
             $arquivo = $caminhoAPILocal . 'api/api-back/classes/' . $classe . '.class.php';
         else
             $arquivo = $caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php';
@@ -1182,8 +1184,10 @@ class ConClasseGeral extends dadosConexao
 
         }
 
+        $valida = new \ClasseGeral\EstruturaValidacao();
+        $retorno = $valida->validaEstrutura($retorno);
 
-        return $tipoRetorno == 'array' ? $retorno : json_encode($retorno);    
+        return $tipoRetorno == 'array' ? $retorno : json_encode($retorno);
     }
 
     /**
@@ -1992,7 +1996,7 @@ class ConClasseGeral extends dadosConexao
      * @return mixed Retorna a chave do registro atualizado ou 0 em caso de falha.
      */
     public function altera($tabela, $dados, $chave = 0, $mostrarsql = false, $inserirLog = true)
-    {        
+    {
         //Pegando os campos da tabela
         $tabelaOriginal = $tabela;
         $tabela = $this->nometabela($tabela);
@@ -2033,7 +2037,7 @@ class ConClasseGeral extends dadosConexao
                         $sql .= ", $campoT = $valor";
                     }
                 } else if ($tipo == 'json') {
-                    $valor = $this->retornavalorparasql($tipo, $valor, 'alteracao');                    
+                    $valor = $this->retornavalorparasql($tipo, $valor, 'alteracao');
                     $sql .= ", $campoT = $valor";
                 }
 
@@ -2042,7 +2046,7 @@ class ConClasseGeral extends dadosConexao
                 unset($dados[$campoD]);
                 unset($campos[$campoT]);
                 //fazer rotina para inserçao em log pois nao existe na tabela o campo do formulário
-                
+
             }
         }
 
@@ -2054,7 +2058,7 @@ class ConClasseGeral extends dadosConexao
 
         $sR['tabela'] = $tabelaOriginal;
         $sR['comparacao'][] = ['int', $campo_chave, '=', $dados[$campo_chavem]];
-        
+
         $oldValue = $this->retornosqldireto($sR, 'montar', $tabelaOriginal, false, false)[0] ?? [];
 
         $res = $this->executasql($sql, $dataBase);
@@ -2255,7 +2259,7 @@ class ConClasseGeral extends dadosConexao
                 $einteiro = false;
                 $ezero = false;
 
-                     if ($valor === 'chave_usuario_logado') {
+                if ($valor === 'chave_usuario_logado') {
                     $valor = $this->pegaChaveUsuario();
                 } else {
                     $einteiro = trim($tipo) == 'int';
@@ -2326,7 +2330,7 @@ class ConClasseGeral extends dadosConexao
         //A sequencia esta na base principal
         $sql1 = "select chave as chave from sequencias where tabela = '$tabela'";
         $chave = $this->retornosqldireto($sql1, '', 'sequencias');
-        
+
         $proxima_chave_sequencia = sizeof($chave) == 1 ? $chave[0]['chave'] : 1;
 
         $proxima_chave_tabela = $this->maiorchavetabela($tabelaOriginal) + 1;
@@ -2343,7 +2347,7 @@ class ConClasseGeral extends dadosConexao
             $res2 = $this->executasql($sql2);
             $proxima_chave = $proxima_chave_tabela;
         } else if ($proxima_chave_sequencia >= $proxima_chave_tabela) {
-                    if ($atualizarSequencia)
+            if ($atualizarSequencia)
                 $proxima_chave_sequencia++;
             $sql2 = "update sequencias set chave = $proxima_chave_sequencia where tabela = '$tabela'";
             $res2 = $this->executasql($sql2);
@@ -2712,7 +2716,7 @@ class ConClasseGeral extends dadosConexao
     public function textoparaarray($separador, $texto)
     {
         $retorno = array();
-        
+
         $temp = explode($separador, (string)$texto);
         /* @var $val type string */
         foreach ($temp as $val) {
@@ -2973,7 +2977,7 @@ class ConClasseGeral extends dadosConexao
 
         if ($acao == 'Alteração') {
             foreach ($valorAnterior as $campo => $valor) {
-                if ($valor != $valorNovo[$campo]) {                    
+                if ($valor != $valorNovo[$campo]) {
                     $incluirLog = true;
                 }
             }
@@ -3001,12 +3005,12 @@ class ConClasseGeral extends dadosConexao
             ];
 
             $chave = $this->inclui('eventos_sistema', $dados, 0, false);
-        }        
+        }
         return $chave;
     }
 
     public function pegaChaveAcesso()
-    {        
+    {
         return isset($_SESSION[session_id()]['usuario']['chave_acesso']) ? $_SESSION[session_id()]['usuario']['chave_acesso'] : null;
     }
 }
