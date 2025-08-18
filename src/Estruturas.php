@@ -3,43 +3,80 @@
 namespace ClasseGeral;
 
 
-class EstruturaValidacao extends \ClasseGeral\ClasseGeral {
+class Estruturas extends \ClasseGeral\ClasseGeral {
 
-    protected function validaEstruturaTeste($estrutura)
+    /**
+     * Busca a estrutura de uma tabela para geração de formulários, relatórios, etc.
+     *
+     * @param array $parametros Parâmetros para a busca da estrutura.
+     * @param string $tipoRetorno (Opcional) Tipo de retorno desejado (json ou array).
+     * @return mixed Estrutura da tabela em formato JSON ou array.
+     */
+    public function buscarEstrutura($parametros, $tipoRetorno = 'json')
     {
-        $classe = $estrutura['classe'];
-        $ms = new \ClasseGeral\ManipulaSessao();
-        $usuario = $this->buscaUsuarioLogado();
-        $adm = $usuario['administrador_sistema'] == 'S';
+        $parametros = isset($parametros['parametros']) ? json_decode($parametros['parametros'], true) : $parametros;
+        $classeEntrada = !is_array($parametros) ? $parametros : $parametros['classe'];
 
-        $menus = $ms->pegar('menu');
+        $parametrosEnviados = isset($parametros['parametrosEnviados']) ? json_decode(base64_decode($parametros['parametrosEnviados']), true) : [];
 
-        $acoes = $menus['acoes'] ?? [];
-        $camposVerPerfil = $menus['campos'] ?? [];
+        $retorno = [];
+        $classe = $this->nomeClase($classeEntrada);
 
-        //Verificando se tem campo a ser validado
-        if (count($camposVerPerfil) > 0 && isset($camposVerPerfil[$classe])) {
-            //Vendo os campos da lista consulta
-            foreach ($estrutura['listaConsulta'] as $campo => $val) {
-                $val = array_merge($val, $estrutura['campos'][$campo] ?? []);
-                $verPerfil = isset($val['verificarPerfil']) && $val['verificarPerfil'] && !$adm;
-                if ($verPerfil) {
-                    if (! array_key_exists($campo, $camposVerPerfil)) {
-                        unset($estrutura['listaConsulta'][$campo]);
-                    }
-                }
+        $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
+
+        $arquivo = '';
+        //Implementando a comparacao para configuracoesMenus que está em api-back e não em backLocal
+        if ($classe == 'configuracaoMenus')
+            $arquivo = $caminhoAPILocal . 'api/api-back/classes/' . $classe . '.class.php';
+        else
+            $arquivo = $caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php';
+
+        if (file_exists($arquivo)) {
+            require_once($arquivo);
+
+            $temp = new $classe();
+
+            $funcaoEstrutura = !is_array($parametros) || !isset($parametros['funcaoEstrutura']) ? 'estrutura' : $parametros['funcaoEstrutura'];
+
+            if (method_exists($temp, $funcaoEstrutura)) {
+                $retorno = $temp->$funcaoEstrutura();
             }
-            //Vendo primeiro nos campos principais
-            foreach ($estrutura['campos'] as $campo => $val) {
-                $verPerfil = isset($val['verificarPerfil']) && $val['verificarPerfil'] && !$adm;
-                if ($verPerfil) {
-                    if (! array_key_exists($campo, $camposVerPerfil)) {
-                        unset($estrutura['campos'][$campo]);
+
+            $retorno['caminhoClasse'] = $arquivo;
+            $retorno['classe'] = isset($retorno['classe']) ? $retorno['classe'] : $classe;
+
+            if (is_array($parametrosEnviados) && sizeof($parametrosEnviados) > 0) {
+                foreach ($parametrosEnviados as $campo => $valores) {
+                    $novoCampo = [
+                        'texto' => isset($valores['texto']) ? $valores['texto'] : '',
+                        'padrao' => isset($valores['valor']) ? $valores['valor'] : '',
+                        'tipo' => !isset($valores['texto']) ? 'oculto' : 'texto',
+                    ];
+
+                    if (isset($retorno['campos'][$campo])) {
+                        $novoCampo['atributos_input']['ng-disabled'] = $retorno['campos'][$campo]['atributos_input']['ng-disabled'] ?? true;
+                    } else {
+                        $novoCampo['atributos_input']['ng-disabled'] = true;
                     }
+                    $retorno['campos'][$campo] = isset($retorno['campos'][$campo]) ?
+                        array_merge($retorno['campos'][$campo], $novoCampo) : $novoCampo;
                 }
             }
         }
-        return $estrutura;
+
+        $origemCampos = $parametros['origem'] ?? 'cadastro';
+
+        $retorno['camposObrigatorios'] = $this->camposObrigatorios($retorno, $origemCampos);
+
+        //Vendo se alguma Acao do Item tem comparacao com o usuario logado
+        foreach (isset($retorno['acoesItensConsulta']) ? $retorno['acoesItensConsulta'] : [] as $nome => $val) {
+
+        }
+
+        $valida = new \ClasseGeral\Estruturas();
+        $retorno = $valida->validaEstrutura($retorno);
+
+        return $tipoRetorno == 'array' ? $retorno : json_encode($retorno);
     }
 
     /**
@@ -47,7 +84,7 @@ class EstruturaValidacao extends \ClasseGeral\ClasseGeral {
      * @param array $estrutura Estrutura JSON a ser validada
      * @return array Estrutura validada
      */
-    protected function validaEstrutura($estrutura)
+    protected function validaEstrutura($estrutura): array
     {
         $ms = new \ClasseGeral\ManipulaSessao();
         $usuario = $this->buscaUsuarioLogado();
@@ -67,9 +104,7 @@ class EstruturaValidacao extends \ClasseGeral\ClasseGeral {
         }
 
         // Valida recursivamente a estrutura
-        $estrutura = $this->validaEstruturaRecursiva($estrutura, $camposValidar);
-
-        return $estrutura;
+        return $this->validaEstruturaRecursiva($estrutura, $camposValidar);
     }
 
     /**
@@ -169,5 +204,27 @@ class EstruturaValidacao extends \ClasseGeral\ClasseGeral {
         }
 
         return $camposValidados;
+    }
+
+    private function camposObrigatorios($variavel, $origem = 'cadastro', $retorno = [])
+    {
+        if ($origem == 'cadastro' && !isset($variavel['campos'])) return [];
+
+        if ($origem == 'consulta' && !isset($variavel['listaConsulta'])) return [];
+
+        $variavelVarrer = $origem == 'cadastro' ? $variavel['campos'] : $variavel['listaConsulta'];
+
+        foreach ($variavelVarrer as $campo => $val) {
+            if (substr($campo, 0, 5) == 'bloco' && isset($val['variavelSalvar'])) {
+                $retorno[$val['variavelSalvar']] = $this->camposObrigatorios($val, $origem, $retorno);
+            } else if (isset($val['obrigatorio']) && $val['obrigatorio']) {
+
+                $retorno[$campo] = isset($val['tipo']) ? $val['tipo'] : 'varchar';
+                if (isset($val['ignorarObrigatorio'])) {
+                    $retorno['ignorarObrigatorio'][$campo] = $val['ignorarObrigatorio'];
+                }
+            }
+        }
+        return $retorno;
     }
 }

@@ -40,7 +40,7 @@ if (!isset($_POST) || sizeof($_POST) == 0) { ?>
     $arquivoHTML = $_POST['arquivo'] . '.html';
     $arquivoController = $_POST['arquivo'] . '.js';
     $arquivoJS = $_POST['arquivo'] . '.tmpl.json';
-    $diretorioCriar = $caminhoApi . 'apiLocal/tmpls';
+    $diretorioCriar = $caminhoApi . 'src/frontLocal/tmpls';
     $diretorio = join('/', explode('-', $_POST['diretorio']));
     $controller = $_POST['controller'];
     $tipoEstrutura = $_POST['tipoEstrutura'];
@@ -55,15 +55,18 @@ if (!isset($_POST) || sizeof($_POST) == 0) { ?>
     $controllerCtrl = $controller.'Ctrl';
     $codigoController = "app.controller('$controllerCtrl', function(){});";
 
-    require_once('BaseArcabouco/bancodedados/conexao.php');
-    $con = new conexao();
+    require __DIR__ . '/vendor/autoload.php';
+    $con = new \ClasseGeral\conClasseGeral();
+    $tbInfo = new \ClasseGeral\TabelasInfo();
+    //require_once('BaseArcabouco/bancodedados/conexao.php');
+    //$con = new conexao();
     $dataBase = $con->pegaDataBase($tabela);
 
     $e = array();
 
     $e['tipoEstrutura'] = $tipoEstrutura;
     $e['tabela'] = $tabela;
-    $e['campo_chave'] = strtolower($con->campochavetabela($tabela));
+    $e['campo_chave'] = strtolower($tbInfo->campochavetabela($tabela));
     $e['raizModelo'] = strtolower($controller);
     $e['textoPagina'] = 'Gerenciamento de ' . $nomeUsual;
     $e['textoNovo'] = 'Incluir ' . $nomeUsual;
@@ -78,7 +81,7 @@ if (!isset($_POST) || sizeof($_POST) == 0) { ?>
 
     $e['listaConsulta'] = '{}';
 
-    $campos_tabela = array_change_key_case($con->campostabela($tabela), CASE_LOWER);
+    $campos_tabela = array_change_key_case($tbInfo->campostabela($tabela), CASE_LOWER);
 //print_r($campos_tabela);
     $e['campos'] = array();
 

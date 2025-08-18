@@ -19,28 +19,6 @@ class ClasseGeral extends ConClasseGeral
     private $funcoes = "";
 
     /**
-     * Indica se deve mostrar o SQL da consulta.
-     * @var bool
-     */
-    private $mostrarSQLConsulta = false;
-
-    /**
-     * Configuração padrão de paginação.
-     * @var array
-     */
-    private $paginacao = array(
-        'paginasMostrar' => 5,
-        'limitePaginaAtiva' => 5,
-        'qtdItensRetornados' => 0,
-        'pagina' => 1,
-        'qtdPaginas' => 1,
-        'primeiraPagina' => 1,
-        'ultimaPagina' => 10,
-        'itensPagina' => 25,
-        'itensUltimaPagina' => 0,
-    );
-
-    /**
      * Formata uma URL de vídeo do YouTube para o formato embed.
      *
      * @param string $url URL do vídeo.
@@ -56,68 +34,42 @@ class ClasseGeral extends ConClasseGeral
         return $retorno;
     }
 
-    /**
-     * Marca ou desmarca um item como selecionado em uma consulta na sessão.
-     *
-     * @param array $parametros Parâmetros contendo 'tela', 'key', 'selecionado', 'campo_chave', 'chave'.
-     * Exemplo:
-     *   [
-     *     'tela' => 'usuarios',
-     *     'key' => 1,
-     *     'selecionado' => 'true',
-     *     'campo_chave' => 'id',
-     *     'chave' => 123
-     *   ]
-     */
-    public function selecionarItemConsulta($parametros)
-    {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
-        $tela = $parametros['tela'];
-        $key = $parametros['key'];
-        $selecionado = $parametros['selecionado'];
-
-        @session_start();
-
-        // Percorre a lista de itens da consulta e marca/desmarca conforme o parâmetro
-        foreach ($_SESSION[session_id()]['consultas'][$tela]['lista'] as $key => $item) {
-            if ($item[$parametros['campo_chave']] == $parametros['chave']) {
-                if ($selecionado == 'false') {
-                    $_SESSION[session_id()]['consultas'][$tela]['parametrosConsulta']['todosItensSelecionados'] = $selecionado;
-                }
-                $_SESSION[session_id()]['consultas'][$tela]['lista'][$key]['selecionado'] = $selecionado;
-            }
-        }
+    public function consulta($parametros, $tipoRetorno = 'json'){
+        $con = new \ClasseGeral\ConsultaDados();
+        return $con->consulta($parametros, $tipoRetorno);
     }
 
-    /**
-     * Seleciona ou desseleciona todos os itens de uma consulta.
-     *
-     * @param array $parametros Parâmetros contendo 'tela' e 'selecionado'.
-     * Exemplo: [ 'tela' => 'usuarios', 'selecionado' => 'true' ]
-     * @return string JSON de sucesso.
-     */
-    public function selecionarTodosItensConsulta($parametros)
+    public function selecionarTodosItensConsulta(array $parametros){
+        $con = new \ClasseGeral\ConsultaDados();
+        return $con->selecionarTodosItensConsulta($parametros);
+    }
+
+    public function selecionarItemConsulta(array $parametros){
+        $con = new \ClasseGeral\ConsultaDados();
+        return $con->selecionarItemConsulta($parametros);
+    }
+
+    public function excluir(array $parametros) : bool|string {
+        $con = new \ClasseGeral\ManipulaDados();
+        return $con->excluir($parametros);
+    }
+
+    public function buscarEstrutura($parametros, $tipoRetorno = 'json'){
+        $con = new \ClasseGeral\Estruturas();
+        return $con->buscarEstrutura($parametros, $tipoRetorno);
+    }
+
+    protected function validarPermissaoUsuario($classe, $acao): array
     {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
-        $tela = $parametros['tela'];
-        $selecionado = $parametros['selecionado'];
+        $usuario = $this->buscaUsuarioLogado();
+        $adm = $usuario['administrador_sistema'] == 'S';
+        $ms = new \ClasseGeral\ManipulaSessao();
+        $menus = $ms->pegar('menu');
 
-        $sessao = new \ClasseGeral\ManipulaSessao();
-        $variavelSessao = 'consultas,' . $tela;
-        $lista = $sessao->pegar($variavelSessao);
-
-        $lista['parametrosConsulta']['todosItensSelecionados'] = $selecionado;
-
-        foreach ($lista['lista'] as $key => $item) {
-            $lista['lista'][$key]['selecionado'] = $selecionado;
-        }
-
-        $sessao->setar($variavelSessao, $lista);
-        return json_encode(['sucesso' => 'sucesso']);
+        if($adm || isset($menus['acoes'][$classe][$acao]))
+            return ['sucesso' => 'Permissão Concedida'];
+        else
+            return ['aviso' => 'Usuário Sem Permissões'];
     }
 
     /**
@@ -147,296 +99,9 @@ class ClasseGeral extends ConClasseGeral
         return $retorno;
     }
 
-    /**
-     * Realiza uma consulta na tabela especificada nos parâmetros.
-     *
-     * @param array $parametros Parâmetros da consulta, incluindo tabela, campos, filtros, etc.
-     * @param string $tipoRetorno Tipo de retorno desejado ('json' ou 'array').
-     * Exemplo: [ 'tabela' => 'usuarios', 'campos' => ['id', 'nome'], ... ]
-     * @return mixed Resultado da consulta no formato desejado.
-     */
-    public function consulta($parametros, $tipoRetorno = 'json')
-    {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
-        ini_set('memory_limit', '-1');
-        $p = isset($parametros['parametros']) ? json_decode($parametros['parametros'], true) : $parametros;
 
-        $p['itensPagina'] = 50;
-        $limite = isset($p['limite']) && $p['limite'] > 0 ? $p['limite'] : 0;
 
-        $tabela = $p['tabela'];
-        $tabelaConsulta = $p['tabelaConsulta'] ?? $tabela;
-        $configuracoesTabela = $this->buscaConfiguracoesTabela($tabelaConsulta);
-        $tabelaConsulta = $configuracoesTabela['tabelaConsulta'] ?? $tabelaConsulta;
 
-        //$tabela = $configuracoesTabela['tabelaOrigem'] ?? $tabela;
-
-        $p['campo_chave'] = $p['campo_chave'] ?? strtolower($this->campochavetabela($p['tabela']));
-
-        $temCampoDisponivelNoFiltro = false;
-
-        $sessao = new \ClasseGeral\ManipulaSessao();
-
-        $valoresConsiderarDisponivel = array_merge(['S'], $configuracoesTabela['valoresConsiderarDisponivel'] ?? []);
-
-        $s['tabela'] = $tabela;
-        $s['tabelaConsulta'] = $tabelaConsulta;
-        $s['dataBase'] = $configuracoesTabela['dataBase'] ?? '';
-
-        //Acrescentando o campo chave
-        $tirarCampoChaveConsulta = $p['tirarCampoChaveConsulta'] ?? false;
-
-        if (isset($p['campos']) && sizeof($p['campos']) > 0 && $tirarCampoChaveConsulta == false) {
-            $p['campos'][] = $p['campo_chave'];
-        } else if (!isset($p['campos'])) {
-            $p['campos'] = '*';
-        }
-
-        $s['campos'] = $p['campos'];
-        if ($s['campos'] != '*') {
-            $s['campos'][] = $p['campo_chave'];
-        }
-
-        $campos_tabela = $this->campostabela($tabelaConsulta);
-
-        if (isset($p['filtros']) && is_array($p['filtros'])) {
-            foreach ($p['filtros'] as $key => $val) {
-                $campo = strtolower($val['campo']);
-                $temCampoDisponivelNoFiltro = strtolower($campo) == 'disponivel' ? true : $temCampoDisponivelNoFiltro;
-
-                if (array_key_exists($campo, $campos_tabela)) {
-                    if (isset($val['campo_chave']) && (isset($val['chave']))) {
-                        $operadorTemp = in_array($val['operador'], ['=', 'like']) ? '=' : '<>';
-                        $s["comparacao"][] = array('inteiro', $val['campo_chave'], $operadorTemp, $val['chave']);
-                    } else {
-                        $s["comparacao"][] = array($campos_tabela[$campo]['tipo'], $campo, $val['operador'], $val['valor']);
-                    }
-                }
-            }
-        }
-
-        //Por enquanto farei apenas dois niveis, relacionada e subrelacionada
-        //Esta variavel vai definir se busco os dados relacionados e incluo no retorno
-        $incluirRelacionados = false;
-
-        if (isset($p['tabelasRelacionadas']) && is_array($p['tabelasRelacionadas'])) {
-            foreach ($p['tabelasRelacionadas'] as $tabelaRelacionada => $dadosTabelaRelacionada) {
-                if (isset($dadosTabelaRelacionada['incluirNaConsulta']) && $dadosTabelaRelacionada['incluirNaConsulta']) {
-                    $incluirRelacionados = true;
-                }
-
-                if (!isset($dadosTabelaRelacionada['usarNaPesquisa']) || $dadosTabelaRelacionada['usarNaPesquisa'] == 'true') {
-                    $camposTabelaRelacionada = $this->campostabela($tabelaRelacionada);
-
-                    $camposIgnorarFiltro = isset($dadosTabelaRelacionada['camposIgnorarFiltro']) ? $dadosTabelaRelacionada['camposIgnorarFiltro'] : [];
-
-                    foreach ($p['filtros'] as $keyF => $filtro) {
-                        if (array_key_exists(strtolower($filtro['campo']), $camposTabelaRelacionada) && !in_array($filtro['campo'], $camposIgnorarFiltro)) {
-
-                            $campoRelacionamento = $dadosTabelaRelacionada['campo_relacionamento'] ?? $dadosTabelaRelacionada['campoRelacionamento'];
-                            //Comentei a linha abaixo pois nao entendi o seu funcionamento em 09/10/2017                            
-
-                            if (isset($filtro['campo_chave']) && in_array($filtro['campo_chave'], array_keys($camposTabelaRelacionada)) &&
-                                isset($filtro['chave']) && $filtro['chave'] > 0) {
-                                $campoTR = $filtro['campo_chave'];
-                                $valorTR = $filtro['chave'];
-                                $operadorTR = '=';
-                            } else {
-                                $campoTR = $filtro['campo'];
-                                $valorTR = $filtro['valor'];
-                                $operadorTR = $filtro['operador'];
-                            }
-                            $s['comparacao'][] = array('in', $campoRelacionamento, $tabelaRelacionada, $campoTR, $operadorTR, $valorTR);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (isset($campos_tabela['arquivado'])) {
-            $s['comparacao'][] = array('varchar', 'arquivado', '!=', 'E');
-        }
-
-        if (isset($campos_tabela['disponivel']) && !$temCampoDisponivelNoFiltro) {
-            $s['comparacao'][] = array('inArray', 'disponivel', '=', $valoresConsiderarDisponivel);
-        }
-
-        //No caso o limite esta funcionando apenas na primeira consulta quando e automatica
-        if (isset($p['resumoConsulta']) && sizeof($p['resumoConsulta']) > 0 && $limite == 0) {
-            $retorno['resumoConsulta'] = $this->resumoConsulta($p, $campos_tabela);
-        }
-
-        if (isset($configuracoesTabela['comparacao'])) {
-            foreach ($configuracoesTabela['comparacao'] as $comparacao) {
-                $s['comparacao'][] = $comparacao;
-            }
-        }
-
-        $s['ordem'] = isset($p['ordemFiltro']) ? $p['ordemFiltro'] : '';
-
-        if (isset($p['limite']) && $p['limite'] > 0)
-            $s['limite'] = $p['limite'];
-
-        $dispositivoMovel = isset($p['dispositivoMovel']) && $p['dispositivoMovel'];
-        $retorno['paginacao'] = $this->paginacao;
-        $retorno['paginacao']['paginasMostrar'] = $dispositivoMovel ? 5 : 10;
-
-        $retornoTemp = $this->retornosqldireto($s, 'montar', $tabelaConsulta, (isset($p['origem']) && $p['origem'] == 'site'), $this->mostrarSQLConsulta);
-
-        $qtdItensRetornados = sizeof($retornoTemp);
-        $itensPagina = 50;// isset($p['itensPagina']) ? $p['itensPagina'] : 50;
-        $qtdNaPagina = 1;
-        $pagina = 1;
-
-        $retorno['lista'] = $retornoTemp;
-
-        if (isset($p['itensPagina']) && $p['itensPagina'] > 0) {
-            //Fazendo a paginacao
-            $pag = $this->paginacao;
-            $pag['paginasMostrar'] = $dispositivoMovel ? 5 : 10;
-            //Quantidade de itens retornados pelo filtro
-            $pag['qtdItensRetornados'] = $qtdItensRetornados;
-
-            //Pagina que vem no filtro ou padrao 1
-            $pag['pagina'] = isset($p["pagina"]) ? $p['pagina'] : 1;
-            //Quantos Itens por pagina
-            $pag['itensPagina'] = $itensPagina;
-            //Inicio para o sql
-            $inicioLimite = $pag['pagina'] > 1 ? ($pag['pagina'] - 1) * $itensPagina : 0;
-
-            $pag['itensUltimaPagina'] = $qtdItensRetornados % $itensPagina;
-            $qtdPaginas = $pag['itensUltimaPagina'] > 0 ? (int)($qtdItensRetornados / $itensPagina) + 1 : (int)($qtdItensRetornados / $itensPagina);
-            $pag['qtdPaginas'] = $qtdPaginas;
-
-            //Definindo a primeira Pagina
-            if ($pag['pagina'] > $pag['limitePaginaAtiva'] && $qtdPaginas > $pag['paginasMostrar'] && $pag['pagina'] + $pag['paginasMostrar'] <= $qtdPaginas) {
-                $pag['primeiraPagina'] = $pag['pagina'] - $pag['limitePaginaAtiva'];
-            } else if ($pag['pagina'] + $pag['paginasMostrar'] > $pag['qtdPaginas']) {
-                $pag['primeiraPagina'] = $qtdPaginas - $pag['paginasMostrar'] > 0 ? $qtdPaginas - $pag['paginasMostrar'] : 1;
-            }
-
-            //Definindo o Ultimo numero
-            if ($qtdPaginas <= $pag['paginasMostrar']) {
-                //Tem menos que 10 paginas
-                $pag['ultimaPagina'] = $qtdPaginas;
-            } else if ($pag['pagina'] <= $pag['limitePaginaAtiva']) {
-                //Tem mais que 10 paginas e esta antes da pagina $limitePaginaAtiva
-                $pag['ultimaPagina'] = $pag['paginasMostrar'];
-            } else if ($pag['pagina'] > $pag['limitePaginaAtiva'] && $pag['pagina'] <= $qtdPaginas - $pag['limitePaginaAtiva']) {
-                $pag['ultimaPagina'] = $pag['primeiraPagina'] + $pag['paginasMostrar'];
-            } else if ($pag['pagina'] == $qtdPaginas) {
-                $pag['ultimaPagina'] = $qtdPaginas;
-            }
-
-            //Passando os parametros da paginacao para o sql
-            $s["limite"] = array($inicioLimite, $itensPagina);
-            $retorno['paginacao'] = $pag;
-        } else if (isset($p['itensPagina']) && $p['itensPagina'] == 0) {
-            $retorno['paginacao']['pagina'] = 1;
-            $retorno['paginacao']['qtdPaginas'] = 1;
-            $retorno['paginacao']['limitePaginaAtiva'] = 0;
-        }
-
-        //Testando a rotina de incluir as informacoes de tabelas relacionadas ja na consulta
-        if ($incluirRelacionados) {
-            $chaves = array();
-            foreach ($retorno['lista'] as $key => $item) {
-                $chaves[] = $item[$p['campo_chave']];
-            }
-            $chavesSQL = join(',', $chaves);
-
-            foreach ($p['tabelasRelacionadas'] as $tabelaRelacionada => $dadosTabelaRelacionada) {
-                if (isset($dadosTabelaRelacionada['incluirNaConsulta']) && $dadosTabelaRelacionada['incluirNaConsulta']) {
-                    $camposBuscar = isset($dadosTabelaRelacionada['campos']) ? join(',', $dadosTabelaRelacionada['campos']) : '*';
-
-                    if ($chavesSQL != '') {
-                        $sqlTabRel = "SELECT $camposBuscar FROM $tabelaRelacionada WHERE $p[campo_chave] IN ($chavesSQL)";
-                        $sqlTabRel .= isset($this->campostabela($tabelaRelacionada)['disponivel']) ? " and disponivel = 'S' " : '';
-
-                        $dadosTabRel = $this->agruparArray($this->retornosqldireto(strtolower($sqlTabRel), '', $tabelaRelacionada), $p['campo_chave'], false);
-                    }
-                }
-
-                foreach ($retorno['lista'] as $keyLista => $itemLista) {
-                    if (isset($dadosTabRel[$itemLista[$p['campo_chave']]])) {
-                        $retorno['lista'][$keyLista][$tabelaRelacionada] = $dadosTabRel[$itemLista[$p['campo_chave']]];
-                    }
-                }
-            }
-        }
-
-        $classeTabela = isset($configuracoesTabela['classe']) ? $configuracoesTabela['classe'] : $this->nomeClase($tabela);
-
-        $classeAposFiltrar = $this->criaClasseTabela($classeTabela);
-        $funcaoAposFiltrar = isset($parametros['acaoAposFiltrar']) && $parametros['acaoAposFiltrar'] != 'undefined' ? $parametros['acaoAposFiltrar'] : 'aposFiltrar';
-        $temFuncaoAposFiltrar = $this->criaFuncaoClasse($classeAposFiltrar, $funcaoAposFiltrar);
-
-        if ($temFuncaoAposFiltrar) {
-            $retorno = $classeAposFiltrar->$funcaoAposFiltrar($retorno);
-        }
-
-        $tela = $p['tela'] ?? $p['tabela'];
-
-        $retornoSessao['parametrosConsulta'] = $parametros;
-        $retornoSessao['filtros'] = isset($p['filtros']) ? $p['filtros'] : array();
-        $retornoSessao['ordem'] = isset($p['ordemFiltro']) ? $p['ordemFiltro'] : '';
-        $retornoSessao['paginacao'] = $retorno['paginacao'];
-        $retornoSessao['lista'] = $retorno['lista'];
-        $retornoSessao['parametrosSQL'] = $s;
-
-        $sessao->setar('consultas,' . $tela, $retornoSessao);
-
-        $this->desconecta($s['dataBase']);
-        if ($tipoRetorno == 'json') {
-            return json_encode($retorno);
-        } else if ($tipoRetorno == 'array') {
-            return $retorno;
-        }
-    }
-
-    private function resumoConsulta($parametros, $campos_tabela = array())
-    {
-        $p = $parametros;
-        $limite = isset($p['limite']) && $p['limite'] > 0 ? $p['limite'] : 0;
-        $tabela = $p['tabela'];
-        $campoChave = $p['campo_chave'];
-
-        $sql = 'SELECT ';
-        foreach ($p['resumoConsulta'] as $keyR => $valR) {
-            if ($valR['operacao'] == 'soma') {
-                $sql .= 'COALESCE(SUM(' . $valR['campo'] . '), 0) AS ' . $valR['campo'];
-            }
-            $sql .= $keyR + 1 < sizeof($p['resumoConsulta']) ? ', ' : '';
-        }
-
-        $sql .= ' FROM ' . $tabela . ' WHERE ' . $campoChave . ' > 0';
-
-        if (is_array($p['filtros'])) {
-            foreach ($p['filtros'] as $key => $val) {
-                $campo = strtolower($val['campo']);
-                if ($val['operador'] == 'between') {
-                    $sql .= ' AND ' . $this->montaSQLBetween($campo, $val['valor']);
-
-                } else if (array_key_exists($campo, $campos_tabela) && $val['valor'] != '') {
-                    $sql .= ' AND ' . $campo . ' ' . $val['operador'] . $this->retornavalorparasql($campos_tabela[$campo]['tipo'], $val["valor"]);
-                }
-            }
-        }
-
-        if (isset($campos_tabela['arquivado'])) {
-            $sql .= ' AND arquivado != "E" ';
-        }
-
-        if (isset($campos_tabela['disponivel'])) {
-            $sql .= ' AND disponivel = "S" ';
-        }
-        $temp = $this->retornosqldireto(strtolower($sql), '', $p['tabela']);
-
-        $resumo = $this->retornosqldireto(strtolower($sql), '', $p['tabela'])[0];
-        return $resumo;
-    }
 
     /**
      * Busca um registro para alteração com base nos parâmetros fornecidos.
@@ -446,15 +111,33 @@ class ClasseGeral extends ConClasseGeral
      * Exemplo: [ 'tabela' => 'usuarios', 'campo_chave' => 'id', 'chave' => 123 ]
      * @return mixed Registro encontrado no formato desejado.
      */
-    public function buscarParaAlterar($parametros, $tipoRetorno = 'json')
+    public function buscarParaAlterar(array $parametros, string $tipoRetorno = 'json'): mixed
     {
         if (!is_array($parametros)) {
             throw new \InvalidArgumentException('Esperado array em $parametros');
         }
+
+        $tbInfo = new \ClasseGeral\TabelasInfo();
+
         $p = isset($parametros['filtros']) ? json_decode($parametros['filtros'], true) : $parametros;
 
-        @session_start();
-        $caminhoApiLocal = $_SESSION[session_id()]['caminhoApiLocal'];
+//        $usuario = $this->buscaUsuarioLogado();
+//        $adm = $usuario['administrador_sistema'] == 'S';
+//        $classe = $this->nomeClase($p['tabela']);
+//        $ms = new \ClasseGeral\ManipulaSessao();
+//        $menus = $ms->pegar('menu');
+//
+//        if (!$adm && !isset($menus['acoes'][$classe]['Alterar']))
+//            return json_encode(['aviso' => 'Usuário Sem Permissão']);
+
+        $permissao = $this->validarPermissaoUsuario($this->nomeClase($p['tabela']), 'Alterar');
+
+        if (isset($permissao['aviso']))
+            return json_encode($permissao);
+
+
+       // @session_start();
+        $caminhoApiLocal = $this->pegaCaminhoApi(); // $_SESSION[session_id()]['caminhoApiLocal'];
 
         //Acrescentando a chave na variavel de camposddddddd
         $s['tabela'] = $p['tabela'];
@@ -474,7 +157,7 @@ class ClasseGeral extends ConClasseGeral
         //Buscando tabelas relacionadas
         if (isset($p['tabelasRelacionadas'])) {
             foreach ($p['tabelasRelacionadas'] as $keyTR => $valTR) {
-                $camposTabelaRelacionada = $this->campostabela($keyTR);
+                $camposTabelaRelacionada = $tbInfo->campostabela($valTR);
 
                 $campoRelacionamentoTR = isset($valTR['campo_relacionamento']) ? $valTR['campo_relacionamento'] : $valTR['campoRelacionamento'];
                 $r = array();
@@ -508,7 +191,7 @@ class ClasseGeral extends ConClasseGeral
                         $sR = array();
                         foreach ($valTR['tabelasSubRelacionadas'] as $keyS => $valS) {
 
-                            $camposTabelaSubRelacionada = $this->campostabela($keyS);
+                            $camposTabelaSubRelacionada = $tbInfo->campostabela($keyS);
                             $sR['tabela'] = $keyS;
                             $sR['comparacao'][] = array('int', $campoRelacionamentoTR, '=', $p['chave']);
                             $campoRelacionamentoTSR = isset($valS['campo_relacionamento']) ? $valS['campo_relacionamento'] : $valS['campoRelacionamento'];
@@ -578,19 +261,18 @@ class ClasseGeral extends ConClasseGeral
      * Exemplo: [ 'tabela' => 'usuarios', 'chave' => 123 ]
      * @return mixed Anexos encontrados no formato desejado.
      */
-    public function buscarAnexos($parametros, $tipoRetorno = 'json')
+    public function buscarAnexos(array $parametros, string $tipoRetorno = 'json'): mixed
     {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
+        $tabInfo = new \ClasseGeral\TabelasInfo();
+
         $p = $parametros;
 
-        $tabela = strtolower($this->nometabela($p['tabela']));
+        $tabela = strtolower($tabInfo->nometabela($p['tabela']));
         $tabelaConsulta = $p['tabela'];
 
         $chave = is_array($p['chave']) ? join(',', $p['chave']) : $p['chave'];
 
-        $config = $this->buscaConfiguracoesTabela($tabelaConsulta);
+        $config = $tabInfo->buscaConfiguracoesTabela($tabelaConsulta);
 
         $usarAnexosPersonalizados = isset($config['anexos']);
 
@@ -618,8 +300,8 @@ class ClasseGeral extends ConClasseGeral
         $anexosRelacionados = [];
         if (isset($config['anexosRelacionados'])) {
             foreach ($config['anexosRelacionados'] as $tabelaRelacionada => $dadosRel) {
-                $campoChaveTabelaPrincipal = $this->campochavetabela($tabela);
-                $campoChaveRelacionamento = $this->campochavetabela($tabelaRelacionada);
+                $campoChaveTabelaPrincipal = $tabInfo->campochavetabela($tabela);
+                $campoChaveRelacionamento = $tabInfo->campochavetabela($tabelaRelacionada);
 
                 $campoRelacionamento = $dadosRel['campoRelacionamento'];
 
@@ -674,7 +356,7 @@ class ClasseGeral extends ConClasseGeral
                     $arquivos[$key]['tabela'] = strtolower($val['tabela']);
                     $arquivos[$key]['extensao'] = $extensao;
                     $arquivos[$key]['posicao'] = $val['posicao'];
-                    $arquivos[$key]['tipoAnexo'] = isset($val['tipoAnexo']) ? $val['tipoAnexo'] : 'Original';
+                    $arquivos[$key]['tipoAnexo'] = $val['tipoAnexo'] ?? 'Original';
                     if (in_array(strtolower($extensao), $this->extensoes_imagem)) {
                         $arquivos[$key]["mini"] = $diretorio . '/mini/' . $arquivo;
                         $arquivos[$key]['tipo'] = 'imagem';
@@ -722,7 +404,9 @@ class ClasseGeral extends ConClasseGeral
         }
         $p = $parametros;
 
-        $config = $this->buscaConfiguracoesTabela($p['tabela']);
+        $tbInfo = new \ClasseGeral\TabelasInfo();
+        $formata = new \ClasseGeral\Formatacoes();
+        //$config = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
 
         //Acrescentando a chave na variavel de campos
         $s['tabela'] = $p['tabela'];
@@ -738,8 +422,8 @@ class ClasseGeral extends ConClasseGeral
         if (isset($p['tabelasRelacionadas'])) {
             foreach ($p['tabelasRelacionadas'] as $keyTR => $valTR) {
                 //print_r($valTR);
-                $camposTabelaRelacionada = $this->campostabela($keyTR);
-                $campoRelacionamentoTR = isset($valTR['campo_relacionamento']) ? $valTR['campo_relacionamento'] : $valTR['campoRelacionamento'];
+                $camposTabelaRelacionada = $tbInfo->campostabela($keyTR);
+                $campoRelacionamentoTR = $valTR['campo_relacionamento'] ?? $valTR['campoRelacionamento'];
                 $r = array();
                 $r['tabela'] = $keyTR;
 
@@ -747,8 +431,8 @@ class ClasseGeral extends ConClasseGeral
                 if (array_key_exists('disponivel', $camposTabelaRelacionada)) {
                     $r['comparacao'][] = array('varchar', 'disponivel', '=', 'S');
                 }
-                $nomeArrayRelacionado = isset($valTR['raizModelo']) ? $valTR['raizModelo'] : strtolower($this->nometabela($keyTR));
-                $r['ordem'] = isset($valTR['campo_valor']) ? $valTR['campo_valor'] : '';
+                $nomeArrayRelacionado = $valTR['raizModelo'] ?? strtolower($tbInfo->nometabela($keyTR));
+                $r['ordem'] = $valTR['campo_valor'] ?? '';
 
 
                 $retornoR = $this->retornosqldireto($r, 'montar', $keyTR, false, false);
@@ -759,17 +443,17 @@ class ClasseGeral extends ConClasseGeral
 
                         foreach ($valTR['tabelasSubRelacionadas'] as $keyS => $valS) {
 
-                            $camposTabelaSubRelacionada = $this->campostabela($keyS);
+                            $camposTabelaSubRelacionada = $tbInfo->campostabela($keyS);
                             $sR['tabela'] = $keyS;
                             $sR['comparacao'][] = array('int', $valTR['campo_relacionamento'], '=', $p['chave']);
                             $sR['comparacao'][] = array('int', $valS['campo_relacionamento'], '=', $valR[$valS['campo_relacionamento']]);
                             if (array_key_exists('disponivel', $camposTabelaSubRelacionada)) {
                                 $sR['comparacao'][] = array('varchar', 'disponivel', '=', 'S');
                             }
-                            $sR['ordem'] = isset($valS['campo_valor']) ? $valS['campo_valor'] : '';
+                            $sR['ordem'] = $valS['campo_valor'] ?? '';
                             $retornoSr = $this->retornosqldireto($sR, 'montar', $keyS, false, false);
                             if (sizeof($retornoSr) > 0) {
-                                $nomeArraySubRelacionado = isset($valS['raizModelo']) ? $valS['raizModelo'] : strtolower($this->nometabela($keyS));
+                                $nomeArraySubRelacionado = $valS['raizModelo'] ?? strtolower($tbInfo->nometabela($keyS));
                                 $retornoR[$keyR][$nomeArraySubRelacionado] = $retornoSr;
                             }
                         }
@@ -793,433 +477,13 @@ class ClasseGeral extends ConClasseGeral
      * @param array $arquivos Arquivos enviados.
      * Exemplo: [ 'dados' => [...], 'configuracoes' => [...] ], [ 'campoArquivo' => $_FILES['campoArquivo'] ]
      */
-    public function manipula($parametros, $arquivos = [])
-    {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
-        $chave = 0;
-        $p = $parametros;
-
-
-        $caminhoApiLocal = $this->pegaCaminhoApi();// $_SESSION[session_id()]['caminhoApiLocal'];
-
-        $dados = is_array($p['dados']) ? $p['dados'] : json_decode($p['dados'], true);
-
-        $conf = is_array($p['configuracoes']) ? $p['configuracoes'] : json_decode($p['configuracoes'], true);
-
-        if (isset($conf['relacionamentosVerificar']) && is_array($conf['relacionamentosVerificar'])) {
-            $this->verificaRelacionamentos($parametros);
-        }
-
-        $a = [];
-        if (is_array($arquivos) && sizeof($arquivos) > 0) {
-            foreach ($arquivos as $campoArquivo => $arqTemp) {
-                $arqTemp['tipo'] = 'files';
-                $arqTemp['nomeAnexo'] = $campoArquivo;
-                $a[$campoArquivo] = $arqTemp;
-            }
-        }
-
-        if (isset($dados['arquivosAnexosEnviarCopiarcolar']) && sizeof($dados['arquivosAnexosEnviarCopiarcolar']) > 0) {
-            foreach ($dados['arquivosAnexosEnviarCopiarcolar'] as $arqTemp) {
-                $novoArq['tipo'] = 'base64';
-                $novoArq['arquivo'] = $arqTemp;
-                $a[] = $novoArq;
-            }
-        }
-
-        $tabelaOriginal = $conf['tabela'];
-        $confTabela = $this->buscaConfiguracoesTabela($tabelaOriginal);
-        $tabelaOriginal = $confTabela['tabelaOrigem'] ?? $tabelaOriginal;
-
-        $tabela = $this->nometabela($conf['tabela']);
-
-        //Esta variavel entrou para poder usar uma classe diferente do nome da tabela
-        $classeTabela = isset($conf['classe']) ? $conf['classe'] : $tabela;
-
-        $parametrosBuscaEstrutura = isset($conf['funcaoEstrutura']) && $conf['funcaoEstrutura'] != 'undefined' ?
-            ['classe' => $classeTabela, 'funcaoEstrutura' => $conf['funcaoEstrutura']] : $classeTabela;
-
-        //confLocal = estrutura
-        $confLocal = $this->buscarEstrutura($parametrosBuscaEstrutura, 'array');
-
-        $anexoObrigatorio = isset($confLocal['anexos']) && isset($confLocal['anexos']['obrigatorio']);
-        $temArquivos = is_array($a) && sizeof($a) > 0;
-
-        if ($anexoObrigatorio && !$temArquivos) {
-            return json_encode(['erro' => 'Não Há Anexos']);
-        }
-
-        foreach ($confLocal['camposIgnorarEdicao'] ?? [] as $campo)
-            if (isset($dados[$campo]))
-                unset($dados[$campo]);
-
-        $camposObrigatoriosVazios = $this->validarCamposObrigatorios($confLocal, $dados);
-
-        if (sizeof($camposObrigatoriosVazios) > 0) {
-            return json_encode(['camposObrigatoriosVazios' => $camposObrigatoriosVazios]);
-        }
-
-        $classe = $this->criaClasseTabela($classeTabela);
-        if ($this->criaFuncaoClasse($classe, 'antesSalvar')) {
-            $dados = $classe->antesSalvar($dados);
-
-            if (isset($dados['erro']))
-                return json_encode(['erro' => $dados['erro']]);
-        }
-
-        if (isset($confLocal['camposNaoDuplicar']) || isset($confLocal['camposNaoDuplicarJuntos'])) {
-            $camposDuplicados = $this->buscarDuplicidadeCadastro($confLocal, $dados);
-
-            if ($camposDuplicados) {
-                return json_encode(['camposDuplicados' => true]);
-            }
-        }
-
-        $campoChave = $this->campochavetabela($tabelaOriginal, $conf);
-        $acao = '';
-
-        //Vendo se existem as funcoes antesSalvar e antesAlterar na classe, caso exista chamo
-        if (isset($dados[$campoChave]) && $dados[$campoChave] > 0) {
-            $acao = 'editar';
-        } else if (!isset($dados[$campoChave]) || $dados[$campoChave] == 0) {
-            $acao = 'inserir';
-        }
-
-
-        //Fazendo uma rotina para verificar se na configuracao da tabela ha alguma verificacao extra ao
-        //incluir ou alterar dados
-        //Parametro principal sao os dados da tela
-        //Essa funcao deve retornar sempre a mensagem sucesso ou erro
-        if ($acao == 'inserir' && isset($confLocal['funcaoVerificacaoAoIncluir'])) {
-
-            $funcaoExiste = $this->criaFuncaoClasse($classe, $confLocal['funcaoVerificacaoAoIncluir']);
-
-            if ($classe && $funcaoExiste) {
-                $funcaoExecutarVI = $confLocal['funcaoVerificacaoAoIncluir'];
-                $validacao = $classe->$funcaoExecutarVI($dados);
-                if (isset($validacao['erro'])) {
-                    return json_encode($validacao);
-                } else {
-                    $dados = $validacao;
-                }
-            }
-        } else if ($acao == 'editar' && isset($confLocal['funcaoVerificacaoAoAlterar'])) {
-            $funcaoExiste = $this->criaFuncaoClasse($classe, $confLocal['funcaoVerificacaoAoAlterar']);
-
-            if ($classe && $funcaoExiste) {
-                $funcaoExecutarVA = $confLocal['funcaoVerificacaoAoAlterar'];
-                $validacao = $classe->$funcaoExecutarVA($dados);
-
-                if (isset($validacao['erro'])) {
-                    return json_encode($validacao);
-                } else {
-                    $dados = $validacao;
-                }
-            }
-        }
-
-        //Apos fazer as verificacoes de obrigatoriedade e validacoes
-        //verifico se ha uma funcao de manipulacao personalizada
-        if (isset($conf['funcaoManipula']) && $conf['funcaoManipula'] != 'undefined') {
-            if (file_exists($caminhoApiLocal . 'apiLocal/classes/' . $conf['classe'] . '.class.php')) {
-                require_once $caminhoApiLocal . 'apiLocal/classes/' . $conf['classe'] . '.class.php';
-                $classeManipula = new ('//' . $conf['classe'])();
-                $funcaoExecutar = $conf['funcaoManipula'];
-                $dados['acaoManipula'] = $acao;
-                return $classeManipula->$funcaoExecutar($dados, $a);
-            } else {
-                return 'nao tem';
-            }
-        }
-
-        if ($acao == 'editar') {
-            $chave = $dados[$campoChave];
-        } else if ($acao == 'inserir') {
-            $chave = $this->proximachave($tabelaOriginal);
-        }
-
-        if ($chave == null || $chave == 'null') {
-            return json_encode(['erro' =>  'Erro ao Incluir']);
-        }
-
-
-        //funcoes para os anexos
-        if ($temArquivos) {
-            //Por enquanto nao posso usar anexos nos campos e na diretiva ao mesmo tempo.
-            //Posteriormente terei que corrigir isso.
-
-            foreach ($a as $key => $arq) {
-                if (is_int($key)) { //Neste caso, a key e int pois sao da diretiva Arquivos Anexos
-                    $arquivosAnexos[] = $arq;
-                } else if (isset($dados[$key])) { // Neste caso sao arquivos de tela, um arquivo para cada campo
-                    $arquivosTela[$key] = $arq;
-                }
-            }
-
-            if (isset($arquivosTela)) {
-                if (sizeof($conf['arquivosAnexar']) > 0) { //Neste caso e campo da tela
-
-
-                    $up = new \ClasseGeral\UploadSimples();
-                    $dir = new \ClasseGeral\GerenciaDiretorios();
-                    $sessao = new \ClasseGeral\ManipulaSessao();
-                    $raiz = $sessao->pegar('caminhoApiLocal');
-
-                    $arqConf = $this->agruparArray($conf['arquivosAnexar'], 'campo');
-
-                    foreach ($arqConf as $key => $arq) {
-                        if (isset($a[$arq['campo']])) { //Vendo se existe o $_Files
-//                            //Se tem destino nos atributos da imagem salvo no destino estipulado, senao em arquivos anexos
-                            $caminhoBase = isset($arq['destino']) && $arq['destino'] != '' ? $arq['destino'] . '/' : 'arquivos_anexos/' . strtolower($tabela) . '/';
-
-
-//                            //Vendo se e para criar um diretorio com a chave ou salvar direto no destino
-                            $caminhoBase .= isset($arq['salvarEmDiretorio']) && $arq['salvarEmDiretorio'] == 'true' ? $chave . '/' : '';
-//
-                            $caminhoUpload = $raiz . $caminhoBase;
-
-                            $dir->criadiretorio($caminhoUpload);
-
-                            $ext = strtolower(pathinfo($a[$arq['campo']]["name"], PATHINFO_EXTENSION));
-
-                            $novo_nome = isset($arq['nomeAnexo']) && $arq['nomeAnexo'] != ''
-                                ? $arq['nomeAnexo'] . '.' . $ext : strtolower($this->nometabela($tabela)) . '_' . $arq['campo'] . '_' . $chave . '.' . $ext;
-
-                            $dados[$arq['campo']] = $caminhoBase . $novo_nome;
-
-                            if (in_array($ext, $this->extensoes_imagem)) {
-                                $up->upload($a[$arq['campo']], $novo_nome, $caminhoUpload, $arq['largura'], $arq['altura']);
-                            } else if (in_array($ext, $this->extensoes_arquivos)) {
-                                $up->upload($a[$arq['campo']], $novo_nome, $caminhoUpload, 0, 0);
-                            }
-                            $dados[$key] = $caminhoBase . '/' . $novo_nome;
-                            //Removo o campo do array de arquivos
-                            unset($a[$arq['campo']]);
-                        }
-                    }
-                }
-            }
-
-            if (isset($arquivosAnexos)) {
-                $configAnexos = array(
-                    'tabela' => $tabela,
-                    'campo_chave' => $campoChave,
-                    'chave' => $chave,
-                    'origem' => 'inclusao'
-                );
-                $this->anexarArquivos($configAnexos, $arquivosAnexos);
-            }
-        }
-
-
-        if ($acao == 'inserir') {
-            $chave = $this->inclui($tabelaOriginal, $dados, $chave, false);
-
-        } else if ($acao == 'editar') {
-            $dados['disponivel'] = !isset($dados['disponivel']) ? 'S' : $dados['disponivel'];
-            $chave = $this->altera($tabelaOriginal, $dados, $chave, false);
-        }
-
-        //Sao 2 tipo de aposSalvar um pode sar padrao se so tiver uma estrutura na classe ou declarada na estrutura caso hajam mais de uma na classe
-        $aposSalvarPadrao = $this->criaFuncaoClasse($classe, 'aposSalvar');
-        $aposSalvarPersonalizado = isset($confLocal['funcaoAposSalvar']) && $this->criaFuncaoClasse($classe, $confLocal['funcaoAposSalvar']);
-
-        if ($aposSalvarPadrao || $aposSalvarPersonalizado) {
-            $nomeFuncao = $aposSalvarPadrao ? 'aposSalvar' : $confLocal['funcaoAposSalvar'];
-            $dados['acao'] = $acao;
-            $dados[$campoChave] = $chave;
-
-            $dados = $classe->$nomeFuncao($dados);
-
-            if (isset($dados['erro']))
-                return json_encode(['erro' => $dados['erro']]);
-        }
-
-        if (($acao == 'inserir' or $acao == 'editar') && $chave > 0) {
-            //Vendo se ha tabelas relacionadas
-
-            if (isset($conf['tabelasRelacionadas']) && is_array($conf['tabelasRelacionadas'])) {
-                //Varrendo as tabelas relacionadas
-                foreach ($conf['tabelasRelacionadas'] as $tabelaR => $infoTabelaR) {
-                    //Pegando a variavel que contem os dados, vendo se e um array ou se esta direto na raiz
-                    $variavelTabRel = isset($infoTabelaR['raizModelo']) ? $infoTabelaR['raizModelo'] : 'raiz';
-
-                    //Pegando o campo chave da tabela
-                    $campoChaveTabRel = $this->campochavetabela($tabelaR, $infoTabelaR);
-                    $campoRelacionamentoTabRel = isset($infoTabelaR['campo_relacionamento']) ? $infoTabelaR['campo_relacionamento'] : $infoTabelaR['campoRelacionamento'];
-
-                    //Vendo se existem dados da tabela relacionada, e se e um array
-                    if (isset($dados[$variavelTabRel])) {
-                        //Varrendo os dados da tabela relacionada
-                        foreach ($dados[$variavelTabRel] as $keyR => $dadosR) {
-                            //Pondo na tabela relacionada a chave da tabela principal
-
-                            $dadosR[$campoChave] = $chave;
-                            //Vendo se e para alterar ou par incluir
-                            if (isset($dadosR[$campoChaveTabRel]) && $dadosR[$campoChaveTabRel] > 0) {
-                                $novaChaveTabRel = $this->altera($tabelaR, $dadosR, $dadosR[$campoChaveTabRel], false);
-                            } else {
-                                $novaChaveTabRel = $this->inclui($tabelaR, $dadosR, 0, false);
-                            }
-                            $dadosR[$campoChaveTabRel] = $novaChaveTabRel;
-
-                            //Tratando as SubRelacionadas
-                            if (isset($infoTabelaR['tabelasSubRelacionadas'])) {
-                                //Varrendo as tabelas Sub Relacionadas
-                                foreach ($infoTabelaR['tabelasSubRelacionadas'] as $tabelaSR => $infoTabelaSR) {
-                                    $variavelTabSubRel = $infoTabelaSR['raizModelo'];
-                                    //Pegando o campo chave
-                                    $campoChaveTabSubRel = $this->campochavetabela($tabelaSR, $infoTabelaSR);
-
-                                    if (isset($infoTabelaSR['campo_relacionamento']))
-                                        $campoRelacionamentoTabSubRel = $infoTabelaSR['campo_relacionamento'];
-                                    else if (isset($infoTabelaSR['campoRelacionamento']))
-                                        $campoRelacionamentoTabSubRel = $infoTabelaSR['campoRelacionamento'];
-
-                                    if (isset($dadosR[$variavelTabSubRel])) {
-                                        foreach ($dadosR[$variavelTabSubRel] as $keySR => $dadosSR) {
-                                            //Pondo os campos de relacionamentos com as tabelas superiores
-                                            $dadosSR[$campoChave] = $chave;
-                                            $dadosSR[$campoRelacionamentoTabSubRel] = $dadosR[$campoRelacionamentoTabSubRel];
-                                            // print_r($dadosSR);
-                                            if (isset($dadosSR[$campoChaveTabSubRel]) && $dadosSR[$campoChaveTabSubRel] > 0) {
-                                                $this->altera($tabelaSR, $dadosSR, $dadosSR[$campoChaveTabSubRel], false);
-                                            } else {
-                                                $this->inclui($tabelaSR, $dadosSR);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else if (isset($infoTabelaR['campo_chave_origem']) && isset($dados[$infoTabelaR['campo_chave_origem']])) {
-                        //Neste caso os dados estao diretos na raiz, pode ser o caso de cadastro em botao novo de autocompleta
-
-                        $campoChaveOrigem = $infoTabelaR['campo_chave_origem'];
-
-                        $sqlR =
-                            "SELECT $campoChaveTabRel FROM $tabelaR WHERE  $campoChaveOrigem = $dados[$campoChaveOrigem] AND $campoRelacionamentoTabRel = $dados[$campoRelacionamentoTabRel]";
-
-                        $relacionamentoTemp = $this->retornosqldireto($sqlR);
-
-                        $chaveRelacionamento = sizeof($relacionamentoTemp) == 1 ? $relacionamentoTemp[0][$campoChaveTabRel] : 0;
-
-                        if ($chaveRelacionamento == 0) {
-                            $dadosR[$campoChave] = $chave;
-                            $dadosR[$campoRelacionamentoTabRel] = $dados[$campoRelacionamentoTabRel];
-                            $chaveRelacionamento = $this->inclui($tabelaR, $dadosR);
-                        }
-
-                        if ($chaveRelacionamento > 0) {
-                            if (isset($infoTabelaR['tabelasSubRelacionadas'])) {
-
-                                foreach ($infoTabelaR['tabelasSubRelacionadas'] as $tabelaSR => $infoTabelaSR) {
-                                    $campoChaveOrigemSR = $infoTabelaSR['campo_chave_origem'];
-                                    if (isset($dados[$campoChaveOrigemSR])) {
-                                        $campoChaveTabSubRel = $this->campochavetabela($tabelaSR, $infoTabelaSR);
-
-                                        $sqlSR = "SELECT $campoChaveTabSubRel FROM $tabelaSR where $campoChaveOrigem = $dados[$campoChaveOrigem]";
-                                        $sqlSR .= " AND $campoRelacionamentoTabRel = $dados[$campoRelacionamentoTabRel]";
-                                        $sqlSR .= $dados[$campoChaveOrigemSR] != '' && $dados[$campoChaveOrigemSR] != 'undefined' ?
-                                            " AND $campoChaveOrigemSR = $dados[$campoChaveOrigemSR]" : '';
-
-                                        $subRelacionamentoTemp = $this->retornosqldireto($sqlSR);
-                                        $chaveSubRelacionamento = sizeof($subRelacionamentoTemp) == 1 ? $subRelacionamentoTemp[0][$campoChaveTabSubRel] : 0;
-
-                                        if ($chaveSubRelacionamento == 0) {
-                                            $dadosSR[$campoChaveOrigem] = $dados[$campoChaveOrigem];
-                                            $dadosSR[$campoChaveOrigemSR] = $chave;
-                                            $dadosSR[$campoRelacionamentoTabRel] = $dados[$campoRelacionamentoTabRel];
-                                            //print_r($dadosSR);
-                                            $this->inclui($tabelaSR, $dadosSR, 0, false);
-                                        }
-                                    }
-
-                                }
-
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (is_file($caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php')) {
-            require_once $caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php';
-            $config = new ('\\configuracoesTabelas')();
-            $tabela = strtolower($tabela);
-
-            if (method_exists($config, $tabela)) {
-                $configuracoesTabela = $config->$tabela();
-
-                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
-                    require_once $caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
-                    if ($acao == 'inserir' && isset($configuracoesTabela['aoIncluir'])) {
-                        $classeAI = new ('\\' . $configuracoesTabela['aoIncluir']['classe'])();
-                        if (method_exists($classeAI, $configuracoesTabela['aoIncluir']['funcaoExecutar'])) {
-                            $fucnaoAI = $configuracoesTabela['aoIncluir']['funcaoExecutar'];
-                            $dados[$campoChave] = $chave;
-                            $classeAI->$fucnaoAI($dados, $acao);
-                        }
-                    } else if ($acao == 'editar' && isset($configuracoesTabela['aoAlterar'])) {
-
-                        $classeAI = new ('\\' . $configuracoesTabela['aoAlterar']['classe'])();
-                        if (method_exists($classeAI, $configuracoesTabela['aoAlterar']['funcaoExecutar'])) {
-                            $fucnaoAI = $configuracoesTabela['aoAlterar']['funcaoExecutar'];
-                            $dados[$campoChave] = $chave;
-                            $classeAI->$fucnaoAI($dados, $acao);
-                        }
-                    }
-                }
-            }
-        }
-        return json_encode(array('chave' => $chave));
-
+    public function manipula(array $parametros, array $arquivos = []){
+        $con = new \ClasseGeral\ManipulaDados();
+        return $con->manipula($parametros, $arquivos);
     }
 
-    /**
-     * @param $parametros
-     * #tabelaRelacionamento
-     * #camposRelacionados
-     * Funcao criada para quando inserir em alguma tabela, ver se os campos tem de ver verificados em algum relacionamento
-     * Ex. Na SegMed, ao salvar o colaborador, verifica se os setor esta na tabela empresas setores, se o setor e a secao
-     * estao na tabela empresas_setores_secoes ou se empresa, setor e funcao estao em empresas_setores_funcoes
-     *
-     *
-     */
-    public
-    function verificaRelacionamentos($parametros)
-    {
-        $dados = is_array($parametros['dados']) ? $parametros['dados'] : json_decode($parametros['dados'], true);
-        $confi = is_array($parametros['configuracoes']) ? $parametros['configuracoes'] : json_decode($parametros['configuracoes'], true);
 
-        foreach ($confi['relacionamentosVerificar'] as $relacionamento) {
 
-            $campoChave = $this->campochavetabela($relacionamento['tabelaRelacionamento']);
-
-            $sql = "SELECT $campoChave FROM  $relacionamento[tabelaRelacionamento] WHERE $campoChave > 0";
-            foreach ($relacionamento['camposRelacionados'] as $camposRelacionado) {
-                $sql .= isset($dados[$camposRelacionado]) ? " AND $camposRelacionado = $dados[$camposRelacionado]" : '';
-            }
-            $sql = strtolower($sql);
-
-            $relacionamentoExiste = sizeof($this->retornosqldireto($sql)) > 0;
-
-            if (!$relacionamentoExiste) {
-
-                $dadosInserir = array();
-                foreach ($relacionamento['camposRelacionados'] as $campo) {
-                    if (isset($dados[$campo])) {
-                        $dadosInserir[$campo] = $dados[$campo];
-                    }
-                }
-
-                $this->inclui($relacionamento['tabelaRelacionamento'], $dadosInserir); //echo "\n";
-            }
-        }
-    }
 
     public
     function anexarArquivos($parametros, $arquivosPost = [])
@@ -1410,85 +674,7 @@ class ClasseGeral extends ConClasseGeral
         ];
     }
 
-    /**
-     * Exclui um registro, realizando exclusão lógica ou física, dependendo da configuração.
-     *
-     * @param array $parametros Parâmetros para exclusão.
-     * Exemplo: [ 'tabela' => 'usuarios', 'campo_chave' => 'id', 'chave' => 123 ]
-     * @return false|string
-     */
-    public function excluir($parametros)
-    {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
-        $p = $parametros;
 
-        $campos_tabela = $this->campostabela($p['tabela']);
-        $campoChave = isset($p['campo_chave']) ? $p['campo_chave'] : $this->campochavetabela($p['tabela']);
-
-        //Variavel que define se sera excluido ou atualizado para arquivado = 'E'
-        $tabelaOriginal = strtolower($p['tabela']);
-        $nomeTabela = $this->nometabela($p['tabela']);
-
-        $aoExcluir = isset($p['aoExcluir']) ? $p['aoExcluir'] : 'A';
-
-        $sql = "select campo_principal, tabela_secundaria, campo_secundario from view_relacionamentos where tabela_principal = '$nomeTabela'";
-
-        $relacionamentos = $this->retornosqldireto($sql, '', $nomeTabela, false);
-
-        //20240131
-        //Comentei as exclusoes de tabelas relacionadas, depois preciso ver melhor isso
-        if ($aoExcluir == 'A') { //Atualizando os campos arquivado = E
-            $sqlE = "select $campoChave from $tabelaOriginal where $campoChave = $p[chave]";
-            $dados = $this->retornosqldireto($sqlE, '', $tabelaOriginal)[0];
-
-            $dados['disponivel'] = 'E';
-
-            if (isset($campos_tabela['arquivado'])) {
-                $dados['arquivado'] = 'E';
-            }
-
-            if (isset($campos_tabela['ativo'])) {
-                $dados['ativo'] = '0';
-            }
-            if (isset($campos_tabela['publicar'])) {
-                $dados['publicar'] = '0';
-            }
-
-            $nova_chave = $this->altera($tabelaOriginal, $dados, $p['chave'], false);
-
-        } else { //Excluindo os campos
-            //Tenho que fazer o log para essa situação.
-            $nova_chave = $this->exclui($p['tabela'], $campoChave, $p['chave'], 'nenhuma', false);
-        }
-
-        $this->excluirAnexosTabela($tabelaOriginal, $p['chave']);
-
-        $caminhoApiLocal = $this->pegaCaminhoApi();
-
-        if (is_file($caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php')) {
-
-            require_once $caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php';
-            $config = new ('\\configuracoesTabelas')();
-            if (method_exists($config, $nomeTabela)) {
-                $configuracoesTabela = $config->$nomeTabela();
-
-                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
-                    require_once $caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
-                    if (isset($configuracoesTabela['aoExcluir']['classe'])) {
-                        $classeAE = new ('\\' . $configuracoesTabela['aoExcluir']['classe'])();
-                        if (method_exists($classeAE, $configuracoesTabela['aoExcluir']['funcaoExecutar'])) {
-                            $fucnaoAE = $configuracoesTabela['aoExcluir']['funcaoExecutar'];
-                            $classeAE->$fucnaoAE($p, $aoExcluir);
-                        }
-                    }
-                }
-            }
-        }
-
-        return json_encode(array('chave' => $nova_chave));
-    }
 
     /**
      * Exclui anexos relacionados a um registro em uma tabela.

@@ -23,10 +23,8 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         $p = $parametros;
 
         $r = array();
-       // @session_start();
-       // require_once $this->funcoes;
-        //$ms = new manipulaSessao();
         $ms = new \ClasseGeral\ManipulaSessao();
+        $manipula = new \ClasseGeral\ManipulaDados();
 
         //Buscando o Usuario
         $s['tabela'] = 'tb_cadastros';
@@ -43,21 +41,27 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         $usuario = $this->retornosqldireto($s, 'montar', 'view_usuarios', false, false);
 
         $usuario = sizeof($usuario) == 1 ? $usuario[0] : [];
-
+        $administrador = $usuario['administrador_sistema'] == 'S';
 
         $chave_usuario = sizeof($usuario) > 0 ? $usuario['chave_cadastro'] : -1;
 
         if ($chave_usuario >= 1) {
-            $perfil = $this->buscarPerfilUsuario($chave_usuario, 'array');
+            $perfil = false;
+            $chavesMenus = '';
+            $chavesItens = '';
+            $chavesAcoes = '';
+            $chavesCampos = '';
 
-            $temPerfil = sizeof($perfil) > 0;
+            if (!$administrador) {
+                $perfil = $this->buscarPerfilUsuario($chave_usuario, 'array');
 
-            $administrador = $usuario['administrador_sistema'] == 'S';
+                $temPerfil = sizeof($perfil) > 0;
 
-            $chavesMenus = join(', ', array_keys($this->agruparArray($perfil, 'chave_menu')));
-            $chavesItens = join(', ', array_keys($this->agruparArray($perfil, 'chave_item')));
-            $chavesAcoes = join(', ', array_keys($this->agruparArray($perfil, 'chave_acao')));
-            $chavesCampos = join(', ', array_keys($this->agruparArray($perfil, 'chave_campo')));
+                $chavesMenus = join(', ', array_keys($this->agruparArray($perfil, 'chave_menu')));
+                $chavesItens = join(', ', array_keys($this->agruparArray($perfil, 'chave_item')));
+                $chavesAcoes = join(', ', array_keys($this->agruparArray($perfil, 'chave_acao')));
+                $chavesCampos = join(', ', array_keys($this->agruparArray($perfil, 'chave_campo')));
+            }
 
             $usuario['chave_usuario'] = $usuario['chave_cadastro'];
             $r['usuario'] = $usuario;
@@ -83,7 +87,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                 'ultimo_refresh' => $acesso,
                 'validade' => $validade
             );
-            $chave_acesso = $this->inclui('acessos', $inseri, 0, false);
+            $chave_acesso = $manipula->inclui('acessos', $inseri, 0, false);
             $r['usuario']['chave_acesso'] = $chave_acesso;
 
             //Buscando os menus disponiveis para o usuario
@@ -169,6 +173,37 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         //*/
     }
 
+    public function buscarPerfilUsuario($chave_usuario, $tipoRetorno = 'json')
+    {
+        $usuario = $this->buscacamposporchave('tb_cadastros', ['chave_perfil_padrao'], $chave_usuario);
+
+        $chave_perfil_padrao = $usuario['chave_perfil_padrao'];
+        $perfilPadrao = $chave_perfil_padrao > 0 ? $this->buscarPerfilPadrao($chave_perfil_padrao, 'array') : [];
+
+        $sql = 'select *, "Pessoal" as tipo_perfil from usuarios_perfil where chave_usuario = ' . $chave_usuario;
+        $perfilUsuario = $this->retornosqldireto($sql, '', 'usuarios');
+
+        $retorno = array_merge($perfilPadrao, $perfilUsuario);
+
+        if ($tipoRetorno == 'json') {
+            return json_encode($retorno);
+        } else if ($tipoRetorno == 'array') {
+            return $retorno;
+        }
+    }
+
+    public function buscarPerfilPadrao($chave_perfil_padrao, $tipo_retorno = 'json')
+    {
+        $sql = 'select chave_menu, chave_item, chave_acao, chave_campo, "Padrao" as tipo_perfil from usuarios_perfil_padrao_itens 
+                    where chave_perfil_padrao = ' . $chave_perfil_padrao;
+        $itens = $this->retornosqldireto($sql, '', 'usuarios_perfil_padrao_itens');
+        if ($tipo_retorno == 'json') {
+            return json_encode($itens);
+        } else if ($tipo_retorno == 'array') {
+            return $itens;
+        }
+    }
+
     public function buscarMenusConfiguracoes($tipoRetorno = 'json')
     {
         $sql = 'select * from menus where disponivel = "S" order by posicao';
@@ -204,41 +239,10 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         }
     }
 
-    public function buscarPerfilUsuario($chave_usuario, $tipoRetorno = 'json')
-    {
-        $usuario = $this->buscacamposporchave('tb_cadastros', ['chave_perfil_padrao'], $chave_usuario);
-
-        $chave_perfil_padrao = $usuario['chave_perfil_padrao'];
-        $perfilPadrao = $chave_perfil_padrao > 0 ? $this->buscarPerfilPadrao($chave_perfil_padrao, 'array') : [];
-
-        $sql = 'select *, "Pessoal" as tipo_perfil from usuarios_perfil where chave_usuario = ' . $chave_usuario;
-        $perfilUsuario = $this->retornosqldireto($sql, '', 'usuarios');
-
-        $retorno = array_merge($perfilPadrao, $perfilUsuario);
-
-        if ($tipoRetorno == 'json') {
-            return json_encode($retorno);
-        } else if ($tipoRetorno == 'array') {
-            return $retorno;
-        }
-    }
-
-    public function buscarPerfilPadrao($chave_perfil_padrao, $tipo_retorno = 'json')
-    {
-        $sql = 'select chave_menu, chave_item, chave_acao, chave_campo, "Padrao" as tipo_perfil from usuarios_perfil_padrao_itens 
-                    where chave_perfil_padrao = ' . $chave_perfil_padrao;
-        $itens = $this->retornosqldireto($sql, '', 'usuarios_perfil_padrao_itens');
-        if ($tipo_retorno == 'json') {
-            return json_encode($itens);
-        } else if ($tipo_retorno == 'array') {
-            return $itens;
-        }
-    }
-
     public function salvarPerfilPadrao($parametros)
     {
         $novoPerfil = $parametros['novoPerfil'];
-        $chave_perfil_padrao = (int) $parametros['chave_perfil_padrao'] > 0 ? $parametros['chave_perfil_padrao'] : 0;
+        $chave_perfil_padrao = (int)$parametros['chave_perfil_padrao'] > 0 ? $parametros['chave_perfil_padrao'] : 0;
 
         $dataBase = $this->pegaDataBase('usuarios_perfil_padrao');
 
@@ -285,7 +289,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                             }
                         }
 
-                        if(!$temAcoes && !$temCampos){
+                        if (!$temAcoes && !$temCampos) {
                             $itemIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
                             $this->inclui('usuarios_perfil_padrao_itens', $itemIncluir);
                         }
@@ -297,7 +301,8 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         //*/
     }
 
-    public function excluirPerfilPadrao($chave_perfil_padrao){
+    public function excluirPerfilPadrao($chave_perfil_padrao)
+    {
         $sqlUsuarios = "update tb_cadastros set chave_perfil_padrao = null where chave_perfil_padrao = $chave_perfil_padrao and chave_cadastro > 0";
         $this->executasql($sqlUsuarios, '', 'tb_cadastros');
 
@@ -321,15 +326,17 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         return $retorno;
     }
 
-    public function salvarPerfilUsuario($parametros)
+    public function salvarPerfilUsuario($parametros): bool|string
     {
+        $con = new \ClasseGeral\ManipulaDados();
+
         $chave_usuario = $parametros['chave_usuario'];
         $chave_perfil_padrao = $parametros['chave_perfil_padrao'] ?? 0;
         $menus = json_decode($parametros['menus'], true);
 
         $usuario['chave_cadastro'] = $chave_usuario;
         $usuario['chave_perfil_padrao'] = $chave_perfil_padrao;
-        $this->altera('tb_cadastros', $usuario, $chave_usuario, false);
+        $con->altera('tb_cadastros', $usuario, $chave_usuario, false);
 
         $sqlDel = 'delete from usuarios_perfil where chave_usuario = ' . $chave_usuario . ' and chave_perfil > 0';
         $dataBase = $this->pegaDataBase('usuarios');
@@ -353,7 +360,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                                 if (isset($acao['selecionado']) && $acao['selecionado'] && !$acaoPadrao) {
                                     $temAcoes = true;
                                     $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_acao' => $chave_acao);
-                                    $this->inclui('usuarios_perfil', $inc, 0, false);
+                                    $con->inclui('usuarios_perfil', $inc, 0, false);
                                 }
                             }
                         }
@@ -368,17 +375,16 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                                 if (isset($campo['selecionado']) && $campo['selecionado'] && !$campoPadrao) {
                                     $temCampos = true;
                                     $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_campo' => $chave_campo);
-                                    $this->inclui('usuarios_perfil', $inc, 0, false);
+                                    $con->inclui('usuarios_perfil', $inc, 0, false);
                                 }
                             }
                         }
 
                         if (!$temAcoes && !$temCampos && !$itemPadrao) {
                             $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
-                            $this->inclui('usuarios_perfil', $inc, 0, false);
+                            $con->inclui('usuarios_perfil', $inc, 0, false);
                         }
                     }
-
                 }
             }
         }
@@ -396,11 +402,12 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         return json_encode($retorno);
     }
 
-    public function alterarSenha($parametros)
+    public function alterarSenha($parametros): bool|string
     {
+        $con = new \ClasseGeral\ManipulaDados();
         $dados = json_decode($parametros['dados'], true);
-
-        $this->altera('tb_cadastros', $dados);
-        return json_encode(array('chave' => $dados['chave_usuario']));
+        $dados['chave_cadastro'] = $dados['chave_usuario'];
+        $con->altera('tb_cadastros', $dados);
+        return json_encode(array('sucesso' => $dados['chave_usuario']));
     }
 }
