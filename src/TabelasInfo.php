@@ -1,7 +1,9 @@
 <?php
+
 namespace ClasseGeral;
 
-class TabelasInfo extends \ClasseGeral\ClasseGeral{
+class TabelasInfo extends \ClasseGeral\ClasseGeral
+{
     /**
      * Retorna o campo chave de uma tabela a partir do nome da tabela.
      *
@@ -55,9 +57,10 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral{
      * Busca as configurações de uma tabela a partir do nome da tabela.
      *
      * @param string $tabela Nome da tabela a ser consultada.
+     * @param string $tipoTabela Pode ser principal, relacionada ou subReelacionada, para diferir nas comparacoes em configuracoesTabelas
      * @return array Configurações da tabela.
      */
-    public function buscaConfiguracoesTabela($tabela)
+    public function buscaConfiguracoesTabela(string $tabela, string $tipoTabela = 'principal'): array
     {
         $caminhoAPILocal = $this->pegaCaminhoApi();
         $configuracoesTabela = [];
@@ -69,7 +72,7 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral{
             $configuracoesTabelaTemp = new('\\configuracoesTabelas')();
 
             if (method_exists($configuracoesTabelaTemp, $tabela)) {
-                $configuracoesTabela = $configuracoesTabelaTemp->$tabela();
+                $configuracoesTabela = $configuracoesTabelaTemp->$tabela($tipoTabela);
             }
 
             if (isset($configuracoesTabelaTemp->valoresConsiderarDisponivel))
@@ -86,17 +89,19 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral{
      * @param string $tiporetorno (Opcional) Tipo de retorno desejado.
      * @return array Lista de campos da tabela.
      */
-    public function campostabela($tabela, $dataBase = '', $tiporetorno = 'padrao', $origem = '')
+    public function campostabela(string $tabela, string $dataBase = '', string $tiporetorno = 'padrao', string $origem = ''): array
     {
-        $tabela = is_string($tabela) ? strtolower($tabela) : '';
+        $tabela = strtolower($tabela);
 
-        $configTabela = $this->buscaConfiguracoesTabela($tabela);
+        $ms = new \ClasseGeral\ManipulaSessao();
+        $camposSessao = $ms->pegar('camposTabelas,' . $tabela);
 
-        $retorno = array();
+        $retorno = [];
 
-        if (isset($this->camposTabelas[$tabela]) && sizeof($this->camposTabelas[$tabela]) > 0) {
-            return $this->camposTabelas[$tabela];
-        } else {
+        if (is_array($camposSessao))
+            return $camposSessao;
+        else {
+            $configTabela = $this->buscaConfiguracoesTabela($tabela);
             $dataBase = $dataBase != '' ? $dataBase : $this->pegaDataBase($tabela);
 
             $this->conecta($dataBase);
@@ -117,10 +122,9 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral{
                 }
 
                 $campo = $lin['COLUMN_NAME'];
-                $tipo = isset($configTabela['campos'][$campo]['tipo']) ? $configTabela['campos'][$campo]['tipo'] : $lin['DATA_TYPE'];
+                $tipo = $configTabela['campos'][$campo]['tipo'] ?? $lin['DATA_TYPE'];
 
-                $tipoConsulta = isset($configTabela['campos'][$campo]['tipoConsulta']) ? $configTabela['campos'][$campo]['tipoConsulta'] : '';
-
+                $tipoConsulta = $configTabela['campos'][$campo]['tipoConsulta'] ?? '';
 
                 if ($tiporetorno == 'padrao') {
                     $linha = array('campo' => $campo, 'tipo' => $tipo, 'tamanho' => $tamanho, 'tipoConsulta' => $tipoConsulta);
@@ -131,7 +135,8 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral{
                 }
             }
 
-            $this->camposTabelas[$tabela] = $retorno;
+            //$this->camposTabelas[$tabela] = $retorno;
+            $ms->setar('camposTabelas,' . $tabela, $retorno);
             return $retorno;
         }
 

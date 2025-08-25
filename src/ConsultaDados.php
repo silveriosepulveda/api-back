@@ -38,6 +38,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
         if (!is_array($parametros)) {
             throw new \InvalidArgumentException('Esperado array em $parametros');
         }
+
         ini_set('memory_limit', '-1');
         $p = isset($parametros['parametros']) ? json_decode($parametros['parametros'], true) : $parametros;
 

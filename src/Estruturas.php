@@ -73,8 +73,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
 
         }
 
-        $valida = new \ClasseGeral\Estruturas();
-        $retorno = $valida->validaEstrutura($retorno);
+        $retorno = $this->validaEstrutura($retorno);
 
         return $tipoRetorno == 'array' ? $retorno : json_encode($retorno);
     }
@@ -96,7 +95,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
         }
 
         $menus = $ms->pegar('menu');
-        $camposValidar = $menus['campos'] ?? [];
+        $camposValidar = $menus['campos'][$estrutura['classe']] ?? [];
 
         // Se não há campos para validar, retorna a estrutura original
         if (empty($camposValidar)) {
@@ -167,7 +166,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
         foreach ($camposOrigem as $campo => $config) {
             // Se existe o mesmo campo em campos, concatena as configurações
             if (isset($camposDestino[$campo])) {
-                $camposConcatenados[$campo] = array_merge($config, $camposDestino[$campo]);
+                $camposConcatenados[$campo] = array_merge($camposDestino[$campo], $config);
             } else {
                 // Se não existe, mantém apenas a configuração original
                 $camposConcatenados[$campo] = $config;
@@ -193,7 +192,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
 
             if ($verificarPerfil) {
                 // Se tem verificarPerfil = true, verifica se está na lista de campos autorizados
-                if (in_array($campo, $camposValidar)) {
+                if (array_key_exists($campo, $camposValidar)) {
                     $camposValidados[$campo] = $config;
                 }
                 // Se não está autorizado, remove o campo (não adiciona ao array)

@@ -113,30 +113,15 @@ class ClasseGeral extends ConClasseGeral
      */
     public function buscarParaAlterar(array $parametros, string $tipoRetorno = 'json'): mixed
     {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
-
         $tbInfo = new \ClasseGeral\TabelasInfo();
 
         $p = isset($parametros['filtros']) ? json_decode($parametros['filtros'], true) : $parametros;
-
-//        $usuario = $this->buscaUsuarioLogado();
-//        $adm = $usuario['administrador_sistema'] == 'S';
-//        $classe = $this->nomeClase($p['tabela']);
-//        $ms = new \ClasseGeral\ManipulaSessao();
-//        $menus = $ms->pegar('menu');
-//
-//        if (!$adm && !isset($menus['acoes'][$classe]['Alterar']))
-//            return json_encode(['aviso' => 'Usuário Sem Permissão']);
 
         $permissao = $this->validarPermissaoUsuario($this->nomeClase($p['tabela']), 'Alterar');
 
         if (isset($permissao['aviso']))
             return json_encode($permissao);
 
-
-       // @session_start();
         $caminhoApiLocal = $this->pegaCaminhoApi(); // $_SESSION[session_id()]['caminhoApiLocal'];
 
         //Acrescentando a chave na variavel de camposddddddd
@@ -150,6 +135,11 @@ class ClasseGeral extends ConClasseGeral
             $s['comparacao'][] = ['varchar', $p['campoChaveSecundaria'], '=', $p['valorChaveSecundaria']];
         }
 
+        $configTP = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
+        if (isset($configTP['comparacao']))
+            foreach ($configTP['comparacao'] as $comp)
+                $s['comparacao'][] = $comp;
+
         $tempD = $this->retornosqldireto($s, 'montar', $s['tabelaConsulta'], false, false);
 
         $retorno = sizeof($tempD) == 1 ? $tempD[0] : array();
@@ -157,9 +147,9 @@ class ClasseGeral extends ConClasseGeral
         //Buscando tabelas relacionadas
         if (isset($p['tabelasRelacionadas'])) {
             foreach ($p['tabelasRelacionadas'] as $keyTR => $valTR) {
-                $camposTabelaRelacionada = $tbInfo->campostabela($valTR);
+                $camposTabelaRelacionada = $tbInfo->campostabela($keyTR);
 
-                $campoRelacionamentoTR = isset($valTR['campo_relacionamento']) ? $valTR['campo_relacionamento'] : $valTR['campoRelacionamento'];
+                $campoRelacionamentoTR = $valTR['campo_relacionamento'] ?? $valTR['campoRelacionamento'];
                 $r = array();
                 $r['tabela'] = $keyTR;
                 $r['comparacao'][] = array('int', $campoRelacionamentoTR, '=', $p['chave']);
@@ -167,7 +157,7 @@ class ClasseGeral extends ConClasseGeral
                 if (array_key_exists('disponivel', $camposTabelaRelacionada)) {
                     $r['comparacao'][] = array('varchar', 'disponivel', '=', 'S');
                 }
-                $r['ordem'] = isset($valTR['ordem']) ? $valTR['ordem'] : '';
+                $r['ordem'] = $valTR['ordem'] ?? '';
                 $r['ordem'] .= isset($valTR['sentidoOrdem']) ? ' ' . $valTR['sentidoOrdem'] : '';
 
                 $nomeArrayRelacionado = isset($valTR['raizModelo']) ? $valTR['raizModelo'] : strtolower($this->nometabela($keyTR));
@@ -181,6 +171,13 @@ class ClasseGeral extends ConClasseGeral
                         $r['ordem'] = 'posicao';
                     } else if (isset($valTR['campo_valor'])) {
                         $r['ordem'] = $valTR['campo_valor'];
+                    }
+                }
+
+                $configTabR = $tbInfo->buscaConfiguracoesTabela($keyTR, 'relacionada');
+                if (isset($configTabR['comparacao'])) {
+                    foreach ($configTabR['comparacao'] as $comparacao) {
+                        $r['comparacao'][] = $comparacao;
                     }
                 }
 
@@ -397,11 +394,8 @@ class ClasseGeral extends ConClasseGeral
      * Exemplo: [ 'tabela' => 'usuarios', 'campo_chave' => 'id', 'chave' => 123 ]
      * @return string JSON com os dados detalhados do registro.
      */
-    public function detalhar($parametros)
+    public function detalhar(array $parametros): string
     {
-        if (!is_array($parametros)) {
-            throw new \InvalidArgumentException('Esperado array em $parametros');
-        }
         $p = $parametros;
 
         $tbInfo = new \ClasseGeral\TabelasInfo();
@@ -416,7 +410,6 @@ class ClasseGeral extends ConClasseGeral
         $tempD = $this->retornosqldireto($s, 'montar', $p['tabela']);
 
         $retorno = sizeof($tempD) == 1 ? $tempD[0] : array();
-
 
         //Buscando tabelas relacionadas
         if (isset($p['tabelasRelacionadas'])) {
@@ -434,6 +427,10 @@ class ClasseGeral extends ConClasseGeral
                 $nomeArrayRelacionado = $valTR['raizModelo'] ?? strtolower($tbInfo->nometabela($keyTR));
                 $r['ordem'] = $valTR['campo_valor'] ?? '';
 
+                $configTr = $tbInfo->buscaConfiguracoesTabela($keyTR, 'relacionada');
+                if (isset($configTr['comparacao']))
+                    foreach ($configTr['comparacao'] as $comp)
+                        $r['comparacao'][] = $comp;
 
                 $retornoR = $this->retornosqldireto($r, 'montar', $keyTR, false, false);
 

@@ -58,24 +58,6 @@ class ConClasseGeral extends dadosConexao
      */
     public $Conexoes;
 
-    /**
-     * Nome da base de dados.
-     * @var string
-     */
-    private $base;
-
-    /**
-     * Cache de campos das tabelas.
-     * @var array
-     */
-    private $camposTabelas = [];
-
-    /**
-     * Retorna o usuário logado na sessão.
-     * @return mixed Usuário logado ou null.
-     */
-
-
     public function __construct()
     {
         parent::__construct();
@@ -347,13 +329,13 @@ class ConClasseGeral extends dadosConexao
                         ' TP.' . $temp[0] . '(' . $campo . ')' :
                         ' TP.' . $campo;
                     $sql .= $campos_tabela[$campo]['tipo'] == 'json' ? ') AS ' . $campo . ',' : ', ';
-                } else if (substr($campo, 0, 8) == 'distinct') {//Acrescentando o distinct
+                } else if (str_starts_with($campo, 'distinct')) {//Acrescentando o distinct
                     $campoDistinct = substr(trim($campo), 9, strlen($campo) - 10);
                     $sql .= ' distinct(TP.' . $campoDistinct . '),';
-                } else if (substr($campo, 0, 3) == 'sum') {
+                } else if (str_starts_with($campo, 'sum')) {
                     $campoSum = substr(trim($campo), 4, strlen($campo) - 4);
                     $sql .= ' sum(TP.' . $campoSum . ') AS ' . $campoSum . ',';
-                } else if (substr($campo, 0, 5) == 'count') {
+                } else if (str_starts_with($campo, 'count')) {
                     $campoCount = trim(substr($campo, 6, strlen($campo) - 7));
                     $sql .= " count(TP.$campoCount) as $campoCount ";
                 }
@@ -364,7 +346,7 @@ class ConClasseGeral extends dadosConexao
             $sql .= 'TP.*';
         }
 
-        $sql = substr($sql, strlen($sql) - 1, 1) == ',' ? substr($sql, 0, strlen($sql) - 1) : $sql;
+        $sql = str_ends_with($sql, ',') ? substr($sql, 0, strlen($sql) - 1) : $sql;
         $sql .= ' from ' . $tabelaConsulta . ' TP ';
 
         $sql .= ' where TP.' . $campo_chave . ' >= 0';
