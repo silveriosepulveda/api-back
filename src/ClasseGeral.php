@@ -59,9 +59,11 @@ class ClasseGeral extends ConClasseGeral
         return $con->buscarEstrutura($parametros, $tipoRetorno);
     }
 
-    protected function validarPermissaoUsuario($classe, $acao): array
+    protected function validarPermissaoUsuario($classe, $acao): array | string
     {
         $usuario = $this->buscaUsuarioLogado();
+        $temp = $_SESSION[session_id()];
+
         $adm = $usuario['administrador_sistema'] == 'S';
         $ms = new \ClasseGeral\ManipulaSessao();
         $menus = $ms->pegar('menu');
@@ -70,6 +72,7 @@ class ClasseGeral extends ConClasseGeral
             return ['sucesso' => 'Permissão Concedida'];
         else
             return ['aviso' => 'Usuário Sem Permissões'];
+        //*/
     }
 
     /**
@@ -117,7 +120,11 @@ class ClasseGeral extends ConClasseGeral
 
         $p = isset($parametros['filtros']) ? json_decode($parametros['filtros'], true) : $parametros;
 
-        $permissao = $this->validarPermissaoUsuario($this->nomeClase($p['tabela']), 'Alterar');
+        $configTP = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
+
+        $classe = $configTP['classe'] ?? $this->nomeClase($p['tabela']);
+
+        $permissao = $this->validarPermissaoUsuario($classe, 'Alterar');
 
         if (isset($permissao['aviso']))
             return json_encode($permissao);
@@ -135,7 +142,6 @@ class ClasseGeral extends ConClasseGeral
             $s['comparacao'][] = ['varchar', $p['campoChaveSecundaria'], '=', $p['valorChaveSecundaria']];
         }
 
-        $configTP = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
         if (isset($configTP['comparacao']))
             foreach ($configTP['comparacao'] as $comp)
                 $s['comparacao'][] = $comp;
