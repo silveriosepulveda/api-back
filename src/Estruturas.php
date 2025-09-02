@@ -12,7 +12,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      * @param string $tipoRetorno (Opcional) Tipo de retorno desejado (json ou array).
      * @return mixed Estrutura da tabela em formato JSON ou array.
      */
-    public function buscarEstrutura($parametros, $tipoRetorno = 'json')
+    public function buscarEstrutura($parametros, $tipoRetorno = 'json'): mixed
     {
         $parametros = isset($parametros['parametros']) ? json_decode($parametros['parametros'], true) : $parametros;
         $classeEntrada = !is_array($parametros) ? $parametros : $parametros['classe'];
@@ -48,8 +48,8 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
             if (is_array($parametrosEnviados) && sizeof($parametrosEnviados) > 0) {
                 foreach ($parametrosEnviados as $campo => $valores) {
                     $novoCampo = [
-                        'texto' => isset($valores['texto']) ? $valores['texto'] : '',
-                        'padrao' => isset($valores['valor']) ? $valores['valor'] : '',
+                        'texto' => $valores['texto'] ?? '',
+                        'padrao' => $valores['valor'] ?? '',
                         'tipo' => !isset($valores['texto']) ? 'oculto' : 'texto',
                     ];
 
@@ -69,7 +69,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
         $retorno['camposObrigatorios'] = $this->camposObrigatorios($retorno, $origemCampos);
 
         //Vendo se alguma Acao do Item tem comparacao com o usuario logado
-        foreach (isset($retorno['acoesItensConsulta']) ? $retorno['acoesItensConsulta'] : [] as $nome => $val) {
+        foreach ($retorno['acoesItensConsulta'] ?? [] as $nome => $val) {
 
         }
 
@@ -83,7 +83,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      * @param array $estrutura Estrutura JSON a ser validada
      * @return array Estrutura validada
      */
-    protected function validaEstrutura($estrutura): array
+    protected function validaEstrutura(array $estrutura): array
     {
         $ms = new \ClasseGeral\ManipulaSessao();
         $usuario = $this->buscaUsuarioLogado();

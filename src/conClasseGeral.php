@@ -1337,7 +1337,7 @@ class ConClasseGeral extends dadosConexao
             $sql .= " AND TP.chave_empresa IN(SELECT chave_empresa FROM usuarios_empresas WHERE chave_usuario= $chave_usuario)";
         }
 
-        @session_start();
+       // @session_start();
         $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
 
         $configuracoesTabela = [];
@@ -1352,7 +1352,10 @@ class ConClasseGeral extends dadosConexao
 
         if (isset($configuracoesTabela['comparacao'])) {
             foreach ($configuracoesTabela['comparacao'] as $comparacao) {
-                $sql .= $comparacao[1];
+                if ($comparacao[0] == 'SQL')
+                    $sql .= $comparacao[1];
+                else
+                    $sql .= ' and TP.' . $comparacao[1] . ' ' . $comparacao[2] . ' "' . $comparacao[3] . '"';
             }
         }
 
