@@ -241,6 +241,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
 
     public function salvarPerfilPadrao($parametros)
     {
+        $manipula = new \ClasseGeral\ManipulaDados();
         $novoPerfil = $parametros['novoPerfil'];
         $chave_perfil_padrao = (int)$parametros['chave_perfil_padrao'] > 0 ? $parametros['chave_perfil_padrao'] : 0;
 
@@ -252,7 +253,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
             $chave = $chave_perfil_padrao;
         } else {
             $dados = array('nome_perfil' => $novoPerfil);
-            $chave = $this->inclui('usuarios_perfil_padrao', $dados, 0, false);
+            $chave = $manipula->inclui('usuarios_perfil_padrao', $dados, 0, false);
         }
         $menus = json_decode($parametros['menus'], true);
 
@@ -271,7 +272,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                                 if ($acao['selecionado']) {
                                     $chave_acao = $acao['chave_acao'];
                                     $acaoIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_acao' => $chave_acao);
-                                    $this->inclui('usuarios_perfil_padrao_itens', $acaoIncluir);
+                                    $manipula->inclui('usuarios_perfil_padrao_itens', $acaoIncluir);
                                     $temAcoes = true;
                                 }
                             }
@@ -283,7 +284,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                                 if ($campo['selecionado']) {
                                     $chave_campo = $campo['chave_campo'];
                                     $campoIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_campo' => $chave_campo);
-                                    $this->inclui('usuarios_perfil_padrao_itens', $campoIncluir);
+                                    $manipula->inclui('usuarios_perfil_padrao_itens', $campoIncluir);
                                     $temCampos = true;
                                 }
                             }
@@ -291,7 +292,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
 
                         if (!$temAcoes && !$temCampos) {
                             $itemIncluir = array('chave_perfil_padrao' => $chave, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item);
-                            $this->inclui('usuarios_perfil_padrao_itens', $itemIncluir);
+                            $manipula->inclui('usuarios_perfil_padrao_itens', $itemIncluir);
                         }
                     }
                 }

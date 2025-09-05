@@ -917,7 +917,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
      */
     public function excluir(array|string $parametros): bool|string
     {
-
+        $tbInfo = new \ClasseGeral\TabelasInfo();
 
         $p = $parametros;
 
@@ -927,12 +927,12 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
 
 
 
-        $campos_tabela = $this->campostabela($p['tabela']);
-        $campoChave = $p['campo_chave'] ?? $this->campochavetabela($p['tabela']);
+        $campos_tabela = $tbInfo->campostabela($p['tabela']);
+        $campoChave = $p['campo_chave'] ?? $tbInfo->campochavetabela($p['tabela']);
 
         //Variavel que define se sera excluido ou atualizado para arquivado = 'E'
         $tabelaOriginal = strtolower($p['tabela']);
-        $nomeTabela = $this->nometabela($p['tabela']);
+        $nomeTabela = $tbInfo->nometabela($p['tabela']);
 
         $aoExcluir = $p['aoExcluir'] ?? 'A';
 
