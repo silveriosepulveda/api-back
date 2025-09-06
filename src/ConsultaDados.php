@@ -278,6 +278,8 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
 
     private function resumoConsulta($parametros, $campos_tabela = array())
     {
+        $formata = new \ClasseGeral\Formatacoes();
+
         $p = $parametros;
         $limite = isset($p['limite']) && $p['limite'] > 0 ? $p['limite'] : 0;
         $tabela = $p['tabela'];
@@ -300,7 +302,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
                     $sql .= ' AND ' . $this->montaSQLBetween($campo, $val['valor']);
 
                 } else if (array_key_exists($campo, $campos_tabela) && $val['valor'] != '') {
-                    $sql .= ' AND ' . $campo . ' ' . $val['operador'] . $this->retornavalorparasql($campos_tabela[$campo]['tipo'], $val["valor"]);
+                    $sql .= ' AND ' . $campo . ' ' . $val['operador'] . $formata->retornavalorparasql($campos_tabela[$campo]['tipo'], $val["valor"]);
                 }
             }
         }

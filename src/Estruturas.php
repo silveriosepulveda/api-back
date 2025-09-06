@@ -73,6 +73,18 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
 
         }
 
+        // Concatena listaConsulta com campos correspondentes
+        if (isset($retorno['listaConsulta']) && is_array($retorno['listaConsulta']) &&
+            isset($retorno['campos']) && is_array($retorno['campos'])) {
+            $retorno['listaConsulta'] = $this->concatenaCampos($retorno['listaConsulta'], $retorno['campos']);
+        }
+
+        // Concatena repeticao[itens] com campos correspondentes
+        if (isset($retorno['repeticao']['itens']) && is_array($retorno['repeticao']['itens']) &&
+            isset($retorno['campos']) && is_array($retorno['campos'])) {
+            $retorno['repeticao']['itens'] = $this->concatenaCampos($retorno['repeticao']['itens'], $retorno['campos']);
+        }
+
         $retorno = $this->validaEstrutura($retorno);
 
         return $tipoRetorno == 'array' ? $retorno : json_encode($retorno);
@@ -114,17 +126,17 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      */
     private function validaEstruturaRecursiva($estrutura, $camposValidar)
     {
-        // Concatena listaConsulta com campos correspondentes
-        if (isset($estrutura['listaConsulta']) && is_array($estrutura['listaConsulta']) && 
-            isset($estrutura['campos']) && is_array($estrutura['campos'])) {
-            $estrutura['listaConsulta'] = $this->concatenaCampos($estrutura['listaConsulta'], $estrutura['campos']);
-        }
-
-        // Concatena repeticao[itens] com campos correspondentes
-        if (isset($estrutura['repeticao']['itens']) && is_array($estrutura['repeticao']['itens']) && 
-            isset($estrutura['campos']) && is_array($estrutura['campos'])) {
-            $estrutura['repeticao']['itens'] = $this->concatenaCampos($estrutura['repeticao']['itens'], $estrutura['campos']);
-        }
+//        // Concatena listaConsulta com campos correspondentes
+//        if (isset($estrutura['listaConsulta']) && is_array($estrutura['listaConsulta']) &&
+//            isset($estrutura['campos']) && is_array($estrutura['campos'])) {
+//            $estrutura['listaConsulta'] = $this->concatenaCampos($estrutura['listaConsulta'], $estrutura['campos']);
+//        }
+//
+//        // Concatena repeticao[itens] com campos correspondentes
+//        if (isset($estrutura['repeticao']['itens']) && is_array($estrutura['repeticao']['itens']) &&
+//            isset($estrutura['campos']) && is_array($estrutura['campos'])) {
+//            $estrutura['repeticao']['itens'] = $this->concatenaCampos($estrutura['repeticao']['itens'], $estrutura['campos']);
+//        }
 
         // Valida campos principais
         if (isset($estrutura['campos']) && is_array($estrutura['campos'])) {
@@ -159,7 +171,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      * @param array $camposDestino Array de campos destino (campos)
      * @return array Campos concatenados
      */
-    private function concatenaCampos($camposOrigem, $camposDestino)
+    private function concatenaCampos(array $camposOrigem, array $camposDestino): array
     {
         $camposConcatenados = [];
 
