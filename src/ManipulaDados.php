@@ -2,7 +2,8 @@
 
 namespace ClasseGeral;
 
-class ManipulaDados extends \ClasseGeral\ClasseGeral {
+class ManipulaDados extends \ClasseGeral\ClasseGeral
+{
     public function manipula(array $parametros, array $arquivos = [])
     {
         $tabInfo = new \ClasseGeral\TabelasInfo();
@@ -149,7 +150,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
         }
 
         if ($chave == null || $chave == 'null') {
-            return json_encode(['erro' =>  'Erro ao Incluir']);
+            return json_encode(['erro' => 'Erro ao Incluir']);
         }
 
 
@@ -388,6 +389,50 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
     }
 
     /**
+     * @param $parametros
+     * #tabelaRelacionamento
+     * #camposRelacionados
+     * Funcao criada para quando inserir em alguma tabela, ver se os campos tem de ver verificados em algum relacionamento
+     * Ex. Na SegMed, ao salvar o colaborador, verifica se os setor esta na tabela empresas setores, se o setor e a secao
+     * estao na tabela empresas_setores_secoes ou se empresa, setor e funcao estao em empresas_setores_funcoes
+     *
+     *
+     */
+    public
+    function verificaRelacionamentos($parametros): void
+    {
+        $tabInfo = new \ClasseGeral\TabelasInfo();
+
+        $dados = is_array($parametros['dados']) ? $parametros['dados'] : json_decode($parametros['dados'], true);
+        $confi = is_array($parametros['configuracoes']) ? $parametros['configuracoes'] : json_decode($parametros['configuracoes'], true);
+
+        foreach ($confi['relacionamentosVerificar'] as $relacionamento) {
+
+            $campoChave = $tabInfo->campochavetabela($relacionamento['tabelaRelacionamento']);
+
+            $sql = "SELECT $campoChave FROM  $relacionamento[tabelaRelacionamento] WHERE $campoChave > 0";
+            foreach ($relacionamento['camposRelacionados'] as $camposRelacionado) {
+                $sql .= isset($dados[$camposRelacionado]) ? " AND $camposRelacionado = $dados[$camposRelacionado]" : '';
+            }
+            $sql = strtolower($sql);
+
+            $relacionamentoExiste = sizeof($this->retornosqldireto($sql)) > 0;
+
+            if (!$relacionamentoExiste) {
+
+                $dadosInserir = array();
+                foreach ($relacionamento['camposRelacionados'] as $campo) {
+                    if (isset($dados[$campo])) {
+                        $dadosInserir[$campo] = $dados[$campo];
+                    }
+                }
+
+                $this->inclui($relacionamento['tabelaRelacionamento'], $dadosInserir); //echo "\n";
+            }
+        }
+    }
+
+    /**
      * Insere um registro em uma tabela e, opcionalmente, em tabelas relacionadas.
      *
      * @param string $tabela Nome da tabela onde o registro será inserido.
@@ -540,48 +585,45 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
         return $nova_chave;
     }
 
-    /**
-     * @param $parametros
-     * #tabelaRelacionamento
-     * #camposRelacionados
-     * Funcao criada para quando inserir em alguma tabela, ver se os campos tem de ver verificados em algum relacionamento
-     * Ex. Na SegMed, ao salvar o colaborador, verifica se os setor esta na tabela empresas setores, se o setor e a secao
-     * estao na tabela empresas_setores_secoes ou se empresa, setor e funcao estao em empresas_setores_funcoes
-     *
-     *
-     */
-    public
-    function verificaRelacionamentos($parametros): void
+    public function incluirLog($tabela, $chave_tabela, $acao, $valorAnterior = [], $valorNovo = '')
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
+        $incluirLog = in_array($acao, ['Inclusão', 'Exclusão', 'Exclusão A']);
+        $chave = 0;
+        $chaveUsuario = $this->pegaChaveUsuario();
+        $chaveUsuario = $chaveUsuario > 0 ? $chaveUsuario : 'null';
 
-        $dados = is_array($parametros['dados']) ? $parametros['dados'] : json_decode($parametros['dados'], true);
-        $confi = is_array($parametros['configuracoes']) ? $parametros['configuracoes'] : json_decode($parametros['configuracoes'], true);
-
-        foreach ($confi['relacionamentosVerificar'] as $relacionamento) {
-
-            $campoChave = $tabInfo->campochavetabela($relacionamento['tabelaRelacionamento']);
-
-            $sql = "SELECT $campoChave FROM  $relacionamento[tabelaRelacionamento] WHERE $campoChave > 0";
-            foreach ($relacionamento['camposRelacionados'] as $camposRelacionado) {
-                $sql .= isset($dados[$camposRelacionado]) ? " AND $camposRelacionado = $dados[$camposRelacionado]" : '';
-            }
-            $sql = strtolower($sql);
-
-            $relacionamentoExiste = sizeof($this->retornosqldireto($sql)) > 0;
-
-            if (!$relacionamentoExiste) {
-
-                $dadosInserir = array();
-                foreach ($relacionamento['camposRelacionados'] as $campo) {
-                    if (isset($dados[$campo])) {
-                        $dadosInserir[$campo] = $dados[$campo];
-                    }
+        if ($acao == 'Alteração') {
+            foreach ($valorAnterior as $campo => $valor) {
+                if ($valor != $valorNovo[$campo]) {
+                    $incluirLog = true;
                 }
-
-                $this->inclui($relacionamento['tabelaRelacionamento'], $dadosInserir); //echo "\n";
             }
         }
+
+        if ($incluirLog) {
+            $valorNovoInserirLog = [];
+            $valorAnteriorInserirLog = [];
+            foreach (isset($valorNovo) && is_array($valorNovo) ? $valorNovo : [] as $campo => $valor) {
+                if (!isset($valorAnterior[$campo]) || $valor != $valorAnterior[$campo]) {
+                    $valorNovoInserirLog[$campo] = $valor;
+                    $valorAnteriorInserirLog[$campo] = isset($valorAnterior[$campo]) ? $valorAnterior[$campo] : null;
+                }
+            }
+
+            $dados = [
+                'tabela' => $tabela,
+                'chave_tabela' => $chave_tabela,
+                'acao' => $acao,
+                'chave_usuario' => $chaveUsuario,
+                'chave_acesso' => $this->pegaChaveAcesso(),
+                'valor_anterior' => json_encode($valorAnteriorInserirLog),  //json_encode($valorAnterior),
+                'valor_novo' => json_encode($valorNovoInserirLog), // $valorNovo, //json_encode($valorNovo),
+                'data_log' => date('Y-m-d H:i:s')
+            ];
+
+            $chave = $this->inclui('eventos_sistema', $dados, 0, false);
+        }
+        return $chave;
     }
 
     /**
@@ -809,8 +851,6 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
         //*/
     }
 
-
-
     /**
      * Atualiza um registro no banco de dados.
      *
@@ -925,8 +965,6 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
         if (isset($permissao['aviso']))
             return json_encode($permissao);
 
-
-
         $campos_tabela = $tbInfo->campostabela($p['tabela']);
         $campoChave = $p['campo_chave'] ?? $tbInfo->campochavetabela($p['tabela']);
 
@@ -990,7 +1028,19 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
             }
         }
 
-        return json_encode(array('chave' => $nova_chave));
+        $novaConsulta = [];
+        if ($nova_chave > 0){
+            $temp = $this->nomeClase($nomeTabela);
+
+            $consulta = new \ClasseGeral\ConsultaDados();
+            $novaConsulta = $consulta->consulta($_SESSION[session_id()]['consultas'][$temp]['parametrosConsulta'], 'array');
+        }
+
+        return json_encode([
+            'chave' => $nova_chave,
+            'novaConsulta' => $novaConsulta
+        ]);
+    //*/
     }
 
     /**
@@ -1056,46 +1106,5 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral {
         } else {
             return $chave;
         }
-    }
-
-    public function incluirLog($tabela, $chave_tabela, $acao, $valorAnterior = [], $valorNovo = '')
-    {
-        $incluirLog = in_array($acao, ['Inclusão', 'Exclusão', 'Exclusão A']);
-        $chave = 0;
-        $chaveUsuario = $this->pegaChaveUsuario();
-        $chaveUsuario = $chaveUsuario > 0 ? $chaveUsuario : 'null';
-
-        if ($acao == 'Alteração') {
-            foreach ($valorAnterior as $campo => $valor) {
-                if ($valor != $valorNovo[$campo]) {
-                    $incluirLog = true;
-                }
-            }
-        }
-
-        if ($incluirLog) {
-            $valorNovoInserirLog = [];
-            $valorAnteriorInserirLog = [];
-            foreach (isset($valorNovo) && is_array($valorNovo) ? $valorNovo : [] as $campo => $valor) {
-                if (!isset($valorAnterior[$campo]) || $valor != $valorAnterior[$campo]) {
-                    $valorNovoInserirLog[$campo] = $valor;
-                    $valorAnteriorInserirLog[$campo] = isset($valorAnterior[$campo]) ? $valorAnterior[$campo] : null;
-                }
-            }
-
-            $dados = [
-                'tabela' => $tabela,
-                'chave_tabela' => $chave_tabela,
-                'acao' => $acao,
-                'chave_usuario' => $chaveUsuario,
-                'chave_acesso' => $this->pegaChaveAcesso(),
-                'valor_anterior' => json_encode($valorAnteriorInserirLog),  //json_encode($valorAnterior),
-                'valor_novo' => json_encode($valorNovoInserirLog), // $valorNovo, //json_encode($valorNovo),
-                'data_log' => date('Y-m-d H:i:s')
-            ];
-
-            $chave = $this->inclui('eventos_sistema', $dados, 0, false);
-        }
-        return $chave;
     }
 }

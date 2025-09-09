@@ -33,7 +33,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
      * Exemplo: [ 'tabela' => 'usuarios', 'campos' => ['id', 'nome'], ... ]
      * @return mixed Resultado da consulta no formato desejado.
      */
-    public function consulta($parametros, $tipoRetorno = 'json'): string
+    public function consulta($parametros, $tipoRetorno = 'json'): string|array
     {
         if (!is_array($parametros)) {
             throw new \InvalidArgumentException('Esperado array em $parametros');
