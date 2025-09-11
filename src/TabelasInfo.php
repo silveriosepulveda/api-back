@@ -94,7 +94,7 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral
         $tabela = strtolower($tabela);
 
         $ms = new \ClasseGeral\ManipulaSessao();
-        $camposSessao = $ms->pegar('camposTabelas,' . $tabela);
+        $camposSessao = '';// $ms->pegar('camposTabelas,' . $tabela);
 
         $retorno = [];
 

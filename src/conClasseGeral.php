@@ -1543,9 +1543,10 @@ class ConClasseGeral extends dadosConexao
      */
     public function multiplicarTexto($valor, $multiplicador)
     {
-        $v1 = $this->retornavalorparasql('float', $valor);
-        $mult = $this->retornavalorparasql('float', $multiplicador);
-        return $this->formatavalorexibir($v1 * $mult, 'float');
+        $formata = new \ClasseGeral\Formatacoes();
+        $v1 = $formata->retornavalorparasql('float', $valor);
+        $mult = $formata->retornavalorparasql('float', $multiplicador);
+        return $formata->formatavalorexibir($v1 * $mult, 'float');
     }
 
     /**
