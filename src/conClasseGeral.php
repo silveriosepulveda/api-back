@@ -8,7 +8,7 @@ namespace ClasseGeral;
  * Responsável por fornecer métodos utilitários para conexão com banco de dados,
  * manipulação de sessões, validação de campos obrigatórios, entre outros.
  */
-
+$temp = __DIR__;
 if (isset($_SESSION[session_id()]['caminhoApiLocal']))
     include $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/dadosConexao.class.php';
 else
