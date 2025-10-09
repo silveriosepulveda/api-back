@@ -132,9 +132,12 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         //Apos fazer as verificacoes de obrigatoriedade e validacoes
         //verifico se ha uma funcao de manipulacao personalizada
         if (isset($conf['funcaoManipula']) && $conf['funcaoManipula'] != 'undefined') {
-            if (file_exists($caminhoApiLocal . 'apiLocal/classes/' . $conf['classe'] . '.class.php')) {
-                require_once $caminhoApiLocal . 'apiLocal/classes/' . $conf['classe'] . '.class.php';
-                $classeManipula = new ('//' . $conf['classe'])();
+            $arqClasse = $caminhoApiLocal . 'api/backLocal/classes/' . $conf['classe'] . '.class.php';
+            if (file_exists($arqClasse)) {
+                require_once $arqClasse;
+
+                $classeManipula = new $conf['classe']();// new ('//' . $conf['classe'])();
+
                 $funcaoExecutar = $conf['funcaoManipula'];
                 $dados['acaoManipula'] = $acao;
                 return $classeManipula->$funcaoExecutar($dados, $a);
@@ -513,7 +516,6 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
         if ($temCampoUsuario) {
             $sql .= ', chave_usuario';
-            @session_start();
             $dados['chave_usuario'] = $this->pegaChaveUsuario();
         }
 
@@ -952,7 +954,8 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
      * Exclui um registro, realizando exclusão lógica ou física, dependendo da configuração.
      *
      * @param array $parametros Parâmetros para exclusão.
-     * Exemplo: [ 'tabela' => 'usuarios', 'campo_chave' => 'id', 'chave' => 123 ]
+     * Exemplo: [ 'tabela' => 'usuarios', 'campo_chave' => 'id', 'chave' => 123, 'aoExcluir' => 'A' ]
+
      * @return false|string
      */
     public function excluir(array|string $parametros): bool|string
@@ -960,6 +963,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         $tbInfo = new \ClasseGeral\TabelasInfo();
 
         $p = $parametros;
+        $refazerConsulta = $parametros['refazerConsulta'] ?? false;
 
         $permissao = $this->validarPermissaoUsuario($this->nomeClase($p['tabela']), 'Excluir');
         if (isset($permissao['aviso']))
@@ -1029,11 +1033,13 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         }
 
         $novaConsulta = [];
-        if ($nova_chave > 0){
-            $temp = $this->nomeClase($nomeTabela);
+        if ($refazerConsulta) {
+            if ($nova_chave > 0) {
+                $temp = $this->nomeClase($nomeTabela);
 
-            $consulta = new \ClasseGeral\ConsultaDados();
-            $novaConsulta = $consulta->consulta($_SESSION[session_id()]['consultas'][$temp]['parametrosConsulta'], 'array');
+                $consulta = new \ClasseGeral\ConsultaDados();
+                $novaConsulta = $consulta->consulta($_SESSION[session_id()]['consultas'][$temp]['parametrosConsulta'], 'array');
+            }
         }
 
         return json_encode([

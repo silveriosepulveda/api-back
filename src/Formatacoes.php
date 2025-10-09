@@ -27,11 +27,14 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
      * @param mixed $valor Valor a ser formatado.
      * @param string $tipo Tipo do dado.
      * @param bool $htmlentitie (Opcional) Se deve ou não aplicar htmlentities no valor.
-     * @return mixed Valor formatado para exibição.
+     * @return string Valor formatado para exibição.
      */
-    public function formatavalorexibir($valor, $tipo, $htmlentitie = true)
+    public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): null | string
     {
         $retorno = '';
+
+        if ($valor == null)
+            return $retorno;
 
         if ($tipo == 'int' || $tipo == 'bigint' || $tipo == 'tinyint') {
             $retorno = $valor != '' && $valor != null ? (int)$valor : $valor;

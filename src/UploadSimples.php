@@ -2,9 +2,9 @@
 
 namespace ClasseGeral;
 
-if (!class_exists('Imagick')) {
-    throw new \Exception('Imagick extension is not installed or enabled.');
-}
+//if (!class_exists('Imagick')) {
+//    throw new \Exception('Imagick extension is not installed or enabled.');
+//}
 
 
 /**

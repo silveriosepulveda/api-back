@@ -9,11 +9,6 @@ namespace ClasseGeral;
  */
 class Destaque extends ConClasseGeral
 {
-     public function __construct()
-    {
-        include_once 'bancodedados/conexao.php';
-    }
-
     /**
      * Altera a posição de destaque de um registro em uma tabela.
      *

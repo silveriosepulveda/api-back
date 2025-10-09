@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null) {
-        return json_encode(print_r($error, true));
+       // return json_encode(print_r($error, true));
         echo "<pre>Erro fatal: ";
         print_r($error);
         echo "</pre>";
@@ -20,6 +20,10 @@ register_shutdown_function(function () {
  */
 
 //Instanciando o arquivo funcoes.class.php e vou tentar utilizado nos demais arquivos sem precisar instancia-lo novamente.
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+header('Access-Control-Allow-Credentials: true');
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -32,6 +36,17 @@ $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
 $app->add(function (Request $request, $handler) {
+    if ($request->getMethod() === 'OPTIONS') {
+        $response = new \Slim\Psr7\Response();
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Headers', '*')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+            ->withHeader('Access-Control-Max-Age', '86400')
+            ->withHeader('Access-Control-Allow-Credentials', 'true')
+            ->withStatus(200);
+    }
+
     $response = $handler->handle($request);
 
     $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
@@ -40,15 +55,15 @@ $app->add(function (Request $request, $handler) {
 
     return $response
         ->withHeader('Access-Control-Allow-Origin', '*')
-        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-Session-Id')
-        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        ->withHeader('Access-Control-Allow-Headers', '*')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+        ->withHeader('Access-Control-Allow-Credentials', 'true');
 });
 
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
-    //$sessionId = '9tcongok1dreeamrtcnd4diou1';// $request->getHeaderLine('x-session-id');
-    $sessionId = $request->getHeaderLine('x-session-id');
+    $sessionId = 'bhq7bd36f8mq9vbil0p2a0d451'; // $request->getHeaderLine('x-session-id');
 
     if ($sessionId) {
         session_id($sessionId);
@@ -261,9 +276,9 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
 //Anexar Arquivos
 $app->post('/anexarArquivos', function (Request $request, Response $response, $argumentos) {
     continuar();
-    if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/classeGeralLocal.class.php')) {
-        require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/classeGeralLocal.class.php';
-        $anexar = new classeGeralLocal();
+    if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/classeGeralLocal.class.php')) {
+        require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/classeGeralLocal.class.php';
+        $anexar = new \ClasseGeral\classeGeralLocal();
     } else {
         //require_once 'classes/classeGeral.class.php';
         //$anexar = new classeGeral();

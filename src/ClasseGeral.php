@@ -6,7 +6,7 @@ require_once __DIR__ . '/conClasseGeral.php';
 
 /**
  * Classe principal para operações gerais do sistema.
- * 
+ *
  * Esta classe herda de ConClasseGeral e provê métodos utilitários para manipulação de dados,
  * paginação, seleção de itens, formatação de URLs, entre outros.
  */
@@ -64,7 +64,7 @@ class ClasseGeral extends ConClasseGeral
         $usuario = $this->buscaUsuarioLogado();
         $temp = $_SESSION[session_id()];
 
-        $adm = $usuario['administrador_sistema'] == 'S';
+        $adm = $usuario['administrador_sistema'] == 'S' || $usuario['administrador_sistema'] == 1;
         $ms = new \ClasseGeral\ManipulaSessao();
         $menus = $ms->pegar('menu');
 
@@ -266,7 +266,18 @@ class ClasseGeral extends ConClasseGeral
      */
     public function buscarAnexos(array $parametros, string $tipoRetorno = 'json'): mixed
     {
+        $cam = $this->pegaCaminhoApi();
+
+        $classeGeralLocal = $cam . 'api/backLocal/classes/classeGeralLocal.class.php';
+        if (is_file($classeGeralLocal)){
+            require_once $classeGeralLocal;
+            $con = new \ClasseGeral\classeGeralLocal();
+            if (method_exists($con, 'buscarAnexos'))
+                return $con->buscarAnexos($parametros, $tipoRetorno);
+        }
+
         $tabInfo = new \ClasseGeral\TabelasInfo();
+
 
         $p = $parametros;
 
@@ -343,7 +354,7 @@ class ClasseGeral extends ConClasseGeral
                     $caminhoArquivo = $caminho . $val['arquivo'];
                 }
 
-                if (is_file($caminhoArquivo) && !array_key_exists($caminhoArquivo, $arquivosVerificados)) {
+                if (is_file( $cam . $caminhoArquivo) && !array_key_exists($caminhoArquivo, $arquivosVerificados)) {
 
                     $arquivosVerificados[$caminhoArquivo] = $caminhoArquivo;
 
@@ -385,12 +396,8 @@ class ClasseGeral extends ConClasseGeral
 
             }
         }
-        if ($tipoRetorno == 'json') {
-            return json_encode($arquivos);
-        } else if ($tipoRetorno == 'array') {
-            return $arquivos;
-        }
 
+        return $tipoRetorno == 'json' ? json_encode($arquivos) : $arquivos;
     }
 
     /**
@@ -690,7 +697,7 @@ class ClasseGeral extends ConClasseGeral
     {
         if (!is_string($tabela)) {
             throw new \InvalidArgumentException('Esperado string em $tabela');
-        }        
+        }
 
         $arquivos = $this->buscarAnexos(['tabela' => $tabela, 'chave' => $chave], 'array');
 

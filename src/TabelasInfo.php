@@ -44,10 +44,10 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral
      * @param string $tabela Nome da tabela.
      * @return string Nome da tabela sem prefixos.
      */
-    public function nometabela($tabela)
+    public function nometabela(string $tabela) : string
     {
         $tabela = strtolower((string)$tabela);
-        if (substr($tabela, 0, 4) == 'view') {
+        if (str_starts_with($tabela, 'view')) {
             $tabela = trim(substr($tabela, 5, 99));
         }
         return $tabela;

@@ -10,9 +10,9 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      *
      * @param array $parametros Parâmetros para a busca da estrutura.
      * @param string $tipoRetorno (Opcional) Tipo de retorno desejado (json ou array).
-     * @return mixed Estrutura da tabela em formato JSON ou array.
+     * @return string|array|bool Estrutura da tabela em formato JSON ou array.
      */
-    public function buscarEstrutura($parametros, $tipoRetorno = 'json'): mixed
+    public function buscarEstrutura($parametros, $tipoRetorno = 'json'): string|array|bool
     {
         $parametros = isset($parametros['parametros']) ? json_decode($parametros['parametros'], true) : $parametros;
         $classeEntrada = !is_array($parametros) ? $parametros : $parametros['classe'];
@@ -43,7 +43,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
             }
 
             $retorno['caminhoClasse'] = $arquivo;
-            $retorno['classe'] = isset($retorno['classe']) ? $retorno['classe'] : $classe;
+            $retorno['classe'] = $retorno['classe'] ?? $classe;
 
             if (is_array($parametrosEnviados) && sizeof($parametrosEnviados) > 0) {
                 foreach ($parametrosEnviados as $campo => $valores) {

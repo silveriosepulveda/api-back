@@ -64,50 +64,126 @@ class ConClasseGeral extends dadosConexao
         $teste = $this->bases;
     }
 
-    public function buscaUsuarioLogado()
-    {
-        $sessao = new \ClasseGeral\ManipulaSessao();
-        return $sessao->pegar('usuario');
-    }
-
     /**
-     * Retorna o caminho base da API local.
-     * @return string Caminho absoluto da API local.
-     */
-    public function pegaCaminhoApi()
-    {
-        if (isset($_SESSION[session_id()]['caminhoApiLocal']))
-            return $_SESSION[session_id()]['caminhoApiLocal'];
-        else
-            return $_SERVER['DOCUMENT_ROOT'] . '/';
-    }
-
-    /**
-     * Retorna o nome da base de dados a ser utilizada para uma tabela específica.
+     * Retorna a data e hora atual formatada.
      *
-     * @param string $tabela Nome da tabela.
-     * @param string $dataBase (Opcional) Nome da base de dados.
-     * @return string Nome da base de dados.
+     * @return string Data e hora atual.
      */
-    public function pegaDataBase(string $tabela = '', mixed $dataBase = ''): string
+    public function pegaDataHora(): string
     {
-        $configuracoesTabela = [];
-        $tabInfo = new \ClasseGeral\TabelasInfo();
+        return date('Y-m-d H:i:s');
+    }
 
-        if ($tabela != '') {
-            $configuracoesTabela = $tabInfo->buscaConfiguracoesTabela($tabela);
+    /**
+     * Converte um nome de tabela para o formato de classe em PHP.
+     *
+     * @param string $tabela Nome da tabela a ser convertida.
+     * @return string Nome da classe gerada a partir da tabela.
+     */
+    public function nomeClase(string $tabela): string
+    {
+        $temp = explode('_', $tabela);
+        $iniciaisExcluir = ['tb', 'tabela', 'table', 'view'];
+
+        foreach ($temp as $valor) {
+            if (!in_array($valor, $iniciaisExcluir)) {
+                $nomes[] = $valor;
+            }
         }
 
-        if ($dataBase != '' && gettype($dataBase) == 'string' && isset($this->bases[$dataBase]))
-            $retorno = $dataBase;
-        else
-            if ($tabela != '' && isset($configuracoesTabela['dataBase']) && isset($this->bases[$configuracoesTabela['dataBase']]))
-                $retorno = $configuracoesTabela['dataBase'];
-            else
-                //$retorno = $this->conexaoPadrao;
-                $retorno = $this->pegaConexaoPadrao();
+        $classe = '';
+        if (sizeof($nomes) > 0) {
+            foreach ($nomes as $key => $item) {
+                $classe .= $key == 0 ? $item : strtoupper(substr($item, 0, 1)) . substr($item, 1, strlen($item));
+            }
+        }
+        return $classe;
+    }
 
+    /**
+     * Monta uma condição SQL do tipo BETWEEN para um campo específico.
+     *
+     * @param string $campo Campo a ser utilizado na condição.
+     * @param string $valor Valores a serem considerados no formato 'valor1__valor2'.
+     * @return string Condição SQL montada.
+     */
+    public function montaSQLBetween($campo, $valor)
+    {
+        $tempB = explode('__', $valor);
+        $temDi = $tempB[0] != 'undefined' && $tempB[0] != '';
+        $temDf = $tempB[1] != 'undefined' && $tempB[1] != '';
+
+        $retorno = $campo;
+        if ($temDi) {
+            $di = $this->retornavalorparasql('date', $tempB[0]);
+            $retorno .= " >= $di ";
+        }
+        if ($temDf) {
+            $df = $this->retornavalorparasql('date', $tempB[1]);
+            $retorno .= $temDi ? " AND $campo <= $df" : " <= $df";
+        }
         return $retorno;
+    }
+
+    /**
+     * Monta os filtros para um relatório a partir dos parâmetros informados.
+     *
+     * @param string $tabela Nome da tabela a ser consultada.
+     * @param array $filtros Filtros a serem aplicados na consulta.
+     * @return array Filtros formatados para exibição.
+     */
+    public function montaFiltrosRelatorios($tabela, $filtros)
+    {
+        $retorno['filtrosExibir'] = '';
+
+        $txt = new ManipulaStrings();
+        foreach ($filtros as $key => $val) {
+            if ($val['campo'] != '') {
+                $retorno['filtrosExibir'] .= $retorno['filtrosExibir'] != '' ? ' e ' : '';
+
+                if ($val['operador'] == 'between') {
+                    $temp = explode('__', $val['valor']);
+                    $temDi = $temp[0] != 'undefined' && $temp[0] != '';
+                    $temDf = $temp[1] != 'undefined' && $temp[1] != '';
+
+                    if ($temDi && $temDf) {
+                        $valorExibir = $temp[0] . ' e ' . $temp[1];
+                        $operadorExibir = 'Entre:';
+                    } else if ($temDi && !$temDf) {
+                        $valorExibir = $temp[0];
+                        $operadorExibir = 'A Partir de:';
+                    } else if (!$temDi && $temDf) {
+                        $valorExibir = $temp[1];
+                        $operadorExibir = 'Até:';
+                    }
+                    $retorno['filtrosExibir'] .= $val['texto'] . ' ' . $operadorExibir . ' ' . $valorExibir;
+                } else {
+                    $operador = $val['operador'] == 'like' ? 'contendo' : $val['operador'];
+                    $retorno['filtrosExibir'] .= $val['campo'] . ' ' . $operador . ' ' . $val['valor'];
+                    $campo = strtolower($val['campo']);
+                }
+            }
+        }
+        return $retorno;
+    }
+
+    /**
+     * Retorna a quantidade de itens selecionados em uma tabela para um determinado campo e valor.
+     *
+     * @param string $tabela Nome da tabela a ser consultada.
+     * @param string $campo Nome do campo a ser filtrado.
+     * @param mixed $valor Valor a ser filtrado.
+     * @return int Quantidade de itens selecionados.
+     */
+    public function qtditensselecionados($tabela, $campo, $valor)
+    {
+        $this->conecta();
+        $tabela = strtolower((string)$tabela);
+        $campo = strtolower($campo);
+        $sql = "SELECT COALESCE(COUNT($campo), 0) AS QTD FROM $tabela WHERE $campo = $valor";
+        $res = $this->executasql($sql);
+        $lin = $this->retornosql($res);
+        return $lin["QTD"];
     }
 
     /**
@@ -157,10 +233,10 @@ class ConClasseGeral extends dadosConexao
         // $TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
         $TipoBase = 'MySQL';
 
-        $dataBase = $this->pegaDataBase('', $dataBase);
+        $dataBase = $dataBase == '' ? $this->pegaDataBase('', $dataBase) : $dataBase;
 
         $this->conecta($dataBase);
-
+        $retorno = '';
 
         if ($this->bases[$dataBase]['tipo_base'] === 'MySQL') {
             $con = $this->Conexoes[$dataBase];
@@ -170,12 +246,64 @@ class ConClasseGeral extends dadosConexao
             if (!$retorno) {
                 $this->desconecta($dataBase);
             }
-        } else if ($TipoBase === 'SQLite') {
-            //$retorno = $this->ConexaoBase->query($sql);
-        }
+        } //elseif ($TipoBase === 'SQLite') {
+//            //$retorno = $this->ConexaoBase->query($sql);
+//        }
         return $retorno;
     }
 
+    /**
+     * Retorna o nome da base de dados a ser utilizada para uma tabela específica.
+     *
+     * @param string $tabela Nome da tabela.
+     * @param string $dataBase (Opcional) Nome da base de dados.
+     * @return string Nome da base de dados.
+     */
+    public function pegaDataBase(string $tabela = '', mixed $dataBase = ''): string
+    {
+        $configuracoesTabela = [];
+        $tabInfo = new \ClasseGeral\TabelasInfo();
+
+        if ($tabela != '') {
+            $configuracoesTabela = $tabInfo->buscaConfiguracoesTabela($tabela);
+        }
+
+        if ($dataBase != '' && gettype($dataBase) == 'string' && isset($this->bases[$dataBase]))
+            $retorno = $dataBase;
+        else
+            if ($tabela != '' && isset($configuracoesTabela['dataBase']) && isset($this->bases[$configuracoesTabela['dataBase']]))
+                $retorno = $configuracoesTabela['dataBase'];
+            else
+                //$retorno = $this->conexaoPadrao;
+                $retorno = $this->pegaConexaoPadrao();
+
+        return $retorno;
+    }
+
+    public function buscaConfiguracoesTabela(string $tabela, string $tipoTabela = 'Principal'): array
+    {
+        return (new TabelasInfo)->buscaConfiguracoesTabela($tabela, $tipoTabela);
+    }
+
+    public function inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed {
+        return (new ManipulaDados)->inclui($tabela, $dados, $chave_primaria, $mostrarsql, $inserirLog, $formatar);
+    }
+
+    public function exclui(string $tabela, string $campo_chave, string $chave, string $tabela_relacionada = 'nenhuma', bool $exibirsql= false): bool|string
+    {
+        $parametros = [
+            'tabela' => $tabela,
+            'campo_chave' => $campo_chave,
+            'chave' => $chave,
+            'exibirsql' => $exibirsql
+        ];
+        $retorno = json_decode((new ManipulaDados())->excluir($parametros), true);
+        return json_encode(['chave' => $retorno['chave']]);
+    }
+
+    public function altera(string $tabela, array $dados, null|int $chave = 0, bool $mostrarsql = false, bool $inserirLog = true): mixed{
+        return (new ManipulaDados)->altera($tabela, $dados, $chave, $mostrarsql, $inserirLog);
+    }
     /**
      * Retorna o próximo registro de um resultado de query.
      *
@@ -195,65 +323,470 @@ class ConClasseGeral extends dadosConexao
         }
     }
 
-
-
     /**
-     * Executa uma query SQL diretamente e retorna os resultados processados.
+     * Monta uma cláusula WHERE para uma consulta SQL a partir dos parâmetros informados.
      *
-     * @param string $sql Query SQL a ser executada.
-     * @param string $acao (Opcional) Ação a ser realizada com os dados retornados.
-     * @param string $tabela (Opcional) Nome da tabela relacionada à query.
-     * @param string $dataBase (Opcional) Nome da base de dados onde a query será executada.
-     * @param bool $mostrarsql (Opcional) Se deve ou não mostrar a query SQL executada.
-     * @param bool $formatar (Opcional) Se deve ou não formatar os valores retornados.
-     * @return array Resultado da query processado.
+     * @param array $parametros Parâmetros para a montagem da cláusula WHERE.
+     * @return string Cláusula WHERE montada.
      */
-    public function retornosqldireto( string|array $sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true): array
+    public function montaWhereSQL($parametros)
     {
-        $retorno = [];
-        $tabInfo = new \ClasseGeral\TabelasInfo();
+        $p = $parametros;
+        $tabela = strtolower($parametros['tabela']);
+        $tabela_buscar_chave_primaria = $this->nometabela($tabela);
+
+        $tbInfo = new \ClasseGeral\TabelasInfo();
         $formata = new \ClasseGeral\Formatacoes();
 
-        $dataBase = $this->pegaDataBase($tabela, $dataBase);
 
-        $campos = $tabela != '' ? array_change_key_case($tabInfo->campostabela($tabela), CASE_LOWER) : '';
+        $campos_tabela = $tbInfo->campostabela($tabela);
 
-        if ($acao == 'montar') {
-            $sql = $this->montasql($sql);
-        }
+        $sql = ' FROM ' . $tabela;
+        $campo_chave = $tbInfo->campochavetabela($tabela_buscar_chave_primaria);
 
-        if ($mostrarsql) {
-            echo $sql;
-        }
+        $sql .= ' WHERE ' . $campo_chave . ' >= 0';
 
-        $res = $this->executasql($sql, $dataBase);
+        if (isset($p['comparacao'])) {
+            foreach ($p['comparacao'] as $op) {
+                if (!is_array($op[0])) { //Neste caso é uma comparação simples
 
-        $linhasAfetadas = $this->linhasafetadas($dataBase);
+                    $tipo = $op[0];
+                    $campo = strtolower($op[1]);
 
-        if ($linhasAfetadas == 1) {
-            $lin = $this->retornosql($res);
-            $retorno[] = array_change_key_case($lin, CASE_LOWER);
-        } else if ($linhasAfetadas > 1) {
-            while ($lin = $this->retornosql($res)) {
-                $retorno[] = array_change_key_case($lin, CASE_LOWER);
-            }
-        }
+                    $operador = $op[2] ?? '';
+                    $valor = isset($op[3]) ? $formata->retornavalorparasql($tipo, $op[3]) : '';
 
-        if ($campos != '') {
-            foreach ($retorno as $key => $val) {
-                foreach ($val as $campo => $valor) {
-                    if ((isset($campos[$campo]['tipo']) && $campos[$campo]['tipoConsulta'] != '') || isset($campos[$campo]['tipoConsulta'])) {
-
-                        $tipo = isset($campos[$campo]['tipoConsulta']) && $campos[$campo]['tipoConsulta'] != '' ? $campos[$campo]['tipoConsulta'] : $campos[$campo]['tipo'];
-
-                        $retorno[$key][$campo] = $formatar ? $formata->formatavalorexibir($valor, $tipo, false) : $valor;
+                    if ($tipo == 'SQL') {
+                        $sql .= $campo; //Neste caso o sql esta na segunda posicao do array, por isso e jogada na variavel campo
+                    } elseif ($operador == 'like') {
+                        $valor = substr($valor, 1, strlen($valor) - 2);
+                        $valor = "'%" . $valor . "%'";
+                        $sql .= ' AND ' . $campo . ' LIKE ' . $valor;
+                    } elseif ($operador == 'inicial') {
+                        $valor = substr($valor, 1, strlen($valor) - 2);
+                        $valor = "'" . $valor . "%'";
+                        $sql .= ' AND ' . $campo . ' LIKE ' . $valor;
+                    } elseif ($operador == 'is' && $valor == "'null'") { //Neste caso é para comparar se o campo é nulo
+                        $sql .= ' AND ' . $campo . ' IS NULL';
+                    } else {
+                        $sql .= ' AND ' . $campo . ' ' . $operador . ' ' . $valor;
                     }
+                } else if (is_array($op[0])) { //Neste caso é uma comparação utilizando or primeiro vou fazer para duas comparações, depois posso expandir para infinitas
+                    $tipos = $op[0];
+                    $campo = strtolower($op[1]);
+                    $operadores = $op[2];
+                    $valores = $op[3];
+
+                    $sql .= ' AND (';
+
+                    foreach ($tipos as $key => $tipo) {
+                        if ($key > 0) {
+                            $sql .= ' OR ';
+                        }
+                        if ($operadores[$key] == 'is' && $valores[$key] == "'null'") { //Neste caso é para comparar se o campo é nulo
+                            $sql .= ' ' . $campo . ' IS NULL ';
+                        } else {
+                            $valor = $formata->retornavalorparasql($tipo, $valores[$key]);
+                            if ($operadores[$key] === 'like') {
+                                $valor = substr($valor, 1, strlen($valor) - 2);
+                                $valor = "'%" . $valor . "%'";
+                            }
+                            $sql .= ' ' . $campo . ' ' . $operadores[$key] . ' ' . $valor;
+                        }
+                    }
+                    $sql .= ')';
                 }
             }
         }
 
-        $this->desconecta($dataBase);
+        if (isset($p['ordem'])) {
+            //Passo para maiusculo
+            $temp = strtolower($p['ordem']);
+            //Separo por virgula os campos que vao ordenar
+            $ordenacao = explode(',', $temp);
+            //varro o array
+            foreach ($ordenacao as $key => $campo_o) {
+                //Separo pelo espaco, pois pode ter desc na frente
+                $ordem = explode(' ', $campo_o);
+
+                if (array_key_exists($ordem[0], $campos_tabela)) {
+                    $sql .= isset($ordem[1]) ? " ORDER BY $ordem[0] $ordem[1]" : " ORDER BY $ordem[0]";
+                }
+            }
+        }
+
+        if (isset($p['limite'])) {
+            if (is_array($p['limite'])) {
+                $sql .= ' LIMIT ' . $p['limite'][0] . ', ' . $p['limite'][1];
+            } else {
+                $sql .= ' LIMIT ' . $p['limite'];
+            }
+        }
+        return $sql;
+    }
+
+    public function nometabela(string $tabela): string
+    {
+        return (new TabelasInfo)->nometabela($tabela);
+    }
+
+    /**
+     * Retorna o valor a ser exibido em uma consulta, formatando-o de acordo com o tipo do campo.
+     *
+     * @param string $tabela Nome da tabela do campo.
+     * @param string $campo Nome do campo.
+     * @param mixed $valor Valor a ser exibido.
+     * @return mixed Valor formatado para exibição.
+     */
+    public function valorexibirconsulta(string $tabela, string $campo, mixed $valor): mixed
+    {
+        $formata = new \ClasseGeral\Formatacoes();
+        $retorno = '';
+        $tabela = strtolower((string)$tabela);
+        $campo = strtolower($campo);
+
+        $tipo = $this->tipodadocampo($tabela, $campo);
+        //Comparando os campos para montar a variável de retorno
+        return $formata->formatavalorexibir($valor, $tipo);
+    }
+
+    /**
+     * Retorna o tipo de dado de um campo em uma tabela.
+     *
+     * @param string $tabela Nome da tabela.
+     * @param string $campo Nome do campo.
+     * @return string Tipo do dado do campo.
+     */
+    public function tipodadocampo($tabela, $campo)
+    {
+        $retorno = '';
+        $tabela = strtolower($tabela);
+        $campo = strtolower($campo);
+        $campos = $this->campostabela($tabela);
+        foreach ($campos as $key => $valores) {
+            if ($valores['campo'] == $campo)
+                $retorno = $valores['tipo'];
+        }
         return $retorno;
+    }
+
+    public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): string|null
+    {
+        $formata = new \ClasseGeral\Formatacoes();
+        return $formata->formatavalorexibir($valor, $tipo, $htmlentitie);
+    }
+
+    /**
+     * Verifica se um objeto existe com base nos parâmetros informados.
+     *
+     * @param array $parametros Parâmetros para a verificação da existência do objeto.
+     * @return string JSON com informações sobre a existência do objeto.
+     */
+    public function objetoexistesimples(array $parametros): string
+    {
+        $tbInfo = new \ClasseGeral\TabelasInfo();
+        $tabela = strtolower($parametros['tabela']);
+
+        $config = $tbInfo->buscaConfiguracoesTabela($tabela);
+        $tabela = $config['tabelaOrigem'] ?? $tabela;
+
+        $campo = strtolower($parametros['campo']);
+        $valor = strtolower($parametros['valor']);
+        $chave = $parametros['chave'] ?? 0;
+
+        $campoChave = $tbInfo->campochavetabela($tabela);
+        $valorinformar = isset($parametros['valorinformar']) ? strtolower($parametros['valorinformar']) : $tbInfo->campochavetabela($tabela);
+
+        if ($valorinformar !== '') {
+            $sql = "SELECT $campo, $campoChave, $valorinformar FROM $tabela WHERE $campo = '$valor'";
+        } else {
+            $sql = "SELECT $campo, $campoChave FROM $tabela WHERE $campo = '$valor'";
+        }
+
+        $campo_chave = $tbInfo->campochavetabela($tabela);
+        if ($chave > 0) {
+            $sql .= " AND $campo_chave <> $chave";
+        }
+
+        $obj = $this->retornosqldireto($sql, '', $tabela);
+
+        $retorno['existe'] = 0;
+        $retorno['valorinformar'] = '';
+
+        if (sizeof($obj) >= 1) {
+            $lin = $obj[0];
+
+            $retorno['existe'] = 1;
+            $retorno['valorinformar'] = $valorinformar != '' ? $lin[$valorinformar] : '';
+        }
+
+        return json_encode($retorno);
+    }
+
+    public function retornosqldireto(string|array $sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true): array
+    {
+        $consulta = new ConsultaDados();
+        return $consulta->retornosqldireto($sql, $acao, $tabela, $dataBase, $mostrarsql, $formatar);
+    }
+
+    /**
+     * Verifica se um objeto existe em uma tabela com base nos parâmetros informados.
+     *
+     * @param string $tabela Nome da tabela a ser consultada.
+     * @param string $campo Nome do campo a ser filtrado.
+     * @param mixed $valor Valor a ser filtrado.
+     * @param mixed $chave (Opcional) Chave primária do registro.
+     * @param string $campo_tab_pri (Opcional) Campo da tabela primária.
+     * @param mixed $valor_ctp (Opcional) Valor da chave primária.
+     * @return bool Retorna true se o objeto existe, caso contrário, false.
+     */
+    public function objetoexiste($tabela, $campo, $valor, $chave_primaria = '', $campo_tab_pri = '', $valor_ctp = '')
+    {
+        $tabela = strtolower($tabela);
+        $campo = strtolower($campo);
+        $campo_tab_pri = strtolower($campo_tab_pri);
+        if ($valor_ctp > 0) {
+            $sql = "SELECT $campo FROM $tabela WHERE LOWER($campo) = LOWER('$valor')";
+            $sql .= " AND $campo_tab_pri = $valor_ctp";
+        } else {
+            $sql = "SELECT $campo FROM $tabela WHERE $campo = " . $this->retornavalorparasql('varchar', $valor);
+        }
+
+        if ($chave_primaria > 0) {
+            $campo_chave = $this->campochavetabela($tabela);
+            $sql .= " AND $campo_chave != $chave_primaria";
+        }
+
+        $res = $this->executasql($sql, $this->pegaDataBase($tabela));
+        if ($this->linhasafetadas() > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Retorna o número de linhas afetadas pela última operação no banco de dados.
+     *
+     * @param string $dataBase (Opcional) Nome da base de dados.
+     * @return int Número de linhas afetadas.
+     */
+    public function linhasafetadas($dataBase = '')
+    {
+        //$TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
+        $TipoBase = 'MySQL';
+
+        //Depois tenho que altrar.
+        $dataBase = $dataBase != '' ? $dataBase : $this->conexaoPadrao;
+
+        return $this->Conexoes[$dataBase]->affected_rows;
+
+        if ($TipoBase === 'MySQL') {
+            //return $this->ConexaoBase->affected_rows;
+        } else if ($TipoBase === 'SQLite') {
+            //return $this->ConexaoBase->data_count($res);
+        }
+    }
+
+    /**
+     * Retorna o nome das tabelas da base de dados.
+     *
+     * @return array Lista de tabelas da base de dados.
+     */
+    // public function tabelasbase($dataBase ='' )
+    // {
+    //     $array = array();
+    //     $this->conecta();
+    //     $base = $dataBase;
+    //     $sql = 'SHOW TABLES FROM ' . $base;
+    //     $res = $this->executasql($sql);
+    //     while ($lin = $this->retornosql($res)) {
+    //         $tabela = $lin['Tables_in_' . $base];
+    //         $array[] = $tabela;
+    //     }
+    //     $array = json_encode($array);
+    //     echo $array;
+    // }
+
+    /**
+     * Verifica se um objeto composto existe em uma tabela com base nos parâmetros informados.
+     *
+     * @param string $tabela Nome da tabela a ser consultada.
+     * @param array $campos Campos a serem filtrados.
+     * @param array $valores Valores a serem considerados na filtragem.
+     * @param string $campo_chave (Opcional) Campo chave da tabela.
+     * @param mixed $chave_primaria (Opcional) Chave primária do registro.
+     * @param string $tipo (Opcional) Tipo de verificação (composto ou simples).
+     * @return mixed Retorna o valor da chave composta se existir, caso contrário, 0.
+     */
+    public function objetoexistecomposto($tabela, $campos, $valores, $campo_chave = '', $chave_primaria = '', $tipo = 'composto')
+    {
+        $tabela = strtolower($tabela);
+        $campo_chave = $campo_chave != '' ? strtolower($campo_chave) : $this->campochavetabela($tabela);
+
+        $sql = "SELECT $campo_chave FROM $tabela WHERE $campo_chave > 0";
+
+        foreach ($campos as $key => $val) {
+            $sql .= " AND " . strtolower($val) . " = " . $this->retornavalorparasql('varchar', $valores[$val]);
+        }
+
+        if ($chave_primaria > 0) {
+            $campo_chave = $this->campochavetabela($tabela);
+            $sql .= " AND $campo_chave != $chave_primaria";
+        }
+
+        $temp = $this->retornosqldireto($sql);
+
+        if (sizeof($temp) > 0) {
+            return $temp[0][strtolower($campo_chave)];
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * Verifica se um registro está em uso em tabelas relacionadas.
+     *
+     * @param string $tabela_e Nome da tabela a ser consultada.
+     * @param string $campo_chave_e Nome do campo chave da tabela.
+     * @param mixed $chave_e Valor da chave a ser verificado.
+     * @param string $tabela_ignorar (Opcional) Tabela a ser ignorada na verificação.
+     * @param bool $exibirsql (Opcional) Se deve ou não exibir a query SQL gerada.
+     * @return int Retorna 1 se o registro estiver em uso, caso contrário, 0.
+     */
+    public function objetoemuso($tabela_e, $campo_chave_e, $chave_e, $tabela_ignorar = 'nenhuma', $exibirsql = false)
+    {
+        $retorno = 0;
+        $tabela = $this->nometabela($tabela_e);
+        $campo_chave = strtolower($campo_chave_e);
+        $dataBase = $this->pegaDataBase($tabela_e);
+
+        $sql = "select tabela_secundaria, campo_secundario from view_relacionamentos";
+        $sql .= " where tabela_principal = '$tabela' and campo_principal = '$campo_chave'";
+
+        //Esta comparacao e principalmente para os casos de tabelas de imagens,
+        //onde ao excluir o item principal excluirei tambem as imagens
+        if ($tabela_ignorar != 'nenhuma' && $tabela_ignorar != '') {
+            $tabela_ignorar = strtolower($tabela_ignorar);
+            $sql .= "and tabela_secundaria != '$tabela_ignorar'";
+        }
+
+        $res = $this->executasql($sql, $dataBase);
+
+        while ($lin = $this->retornosql($res)) {
+
+            $tabela_sec = $lin['tabela_secundaria'];
+            $campo_sec = $lin['campo_secundario'];
+
+            $sql1 = "select $campo_sec from $tabela_sec where $campo_sec = $chave_e";
+            $res1 = $this->executasql($sql1, $this->pegaDataBase($tabela));
+
+            if ($this->linhasafetadas() > 0) {
+                $retorno = 1;
+            }
+        }
+
+        if ($exibirsql == true) {
+            echo $sql;
+        }
+        return $retorno;
+    }
+
+    /**
+     * Retorna os dados de um registro como um array associativo.
+     *
+     * @param string $tabela Nome da tabela a ser consultada.
+     * @param mixed $chave Valor da chave do registro.
+     * @return array Dados do registro.
+     */
+    public function arraydadostabela($tabela, $chave)
+    {
+        $tabela = strtolower($tabela);
+        $campo_chave = $this->campochavetabela($tabela);
+        $chave = $chave;
+        //buscando os campos da tabela
+        $campos = $this->campostabela($tabela);
+
+        $retorno = array();
+        //Montando o sql
+        $sql = "SELECT * FROM $tabela WHERE $campo_chave = $chave";
+        $res = $this->executasql($sql);
+        $lin = $this->retornosql($res);
+
+        foreach ($campos as $key => $valores) {
+            $tipo = $valores['tipo'];
+            $campo = $valores['campo'];
+            //Comparando os campos para montar a variável de retorno
+            if ($tipo == 'int' || $tipo == 'float') {
+                $retorno[$campo] = $lin[$campo];
+            } else if ($tipo == 'varchar' || $tipo == 'char') {
+                $retorno[$campo] = $lin[$campo];
+            } else if ($tipo == 'longtext') {
+                $retorno[$campo] = base64_decode($lin[$campo]);
+            } else if ($tipo == 'date') {
+                $retorno[$campo] = date('d/m/Y', strtotime($lin[$campo]));
+            }
+        }
+        return $retorno;
+    }
+
+    /**
+     * Busca um valor em uma tabela com base na chave primária.
+     *
+     * @param string $tabela Nome da tabela a ser consultada.
+     * @param string $campo Nome do campo a ser buscado.
+     * @param string $campo_chave Nome do campo chave da tabela.
+     * @param mixed $chave Valor da chave a ser buscada.
+     * @return mixed Valor encontrado ou null.
+     */
+    public function buscaumcampotabela($tabela, $campo, $campo_chave, $chave)
+    {
+        $tabela = strtolower($tabela);
+        $campo = strtolower($campo);
+        $campo_chave = strtolower($campo_chave);
+        $sql = "SELECT $campo FROM $tabela WHERE $campo_chave = $chave";
+        $res = $this->executasql($sql);
+        $lin = $this->retornosql($res);
+        return $lin[$campo];
+    }
+
+    /**
+     * Função que retorno a chave de um registro por um ou mais campos
+     * @param texto $tabela Tabela que sera buscada
+     * @param texto /array $campos Pode ser um campo ou um array com varios
+     * @param texto /array $valores Tem que seguir a quantidade de campos
+     * @param boolean $mostrarsql Se ira mostrar o sql gerado pela rotina
+     * @return integer Retorna a chave do registro
+     */
+    public function buscachaveporcampos(string $tabela, $campos, $valores, $tabelaOrigem = '', bool $mostrarsql = false): int|string
+    {
+        $tbInfo = new \ClasseGeral\TabelasInfo();
+        $campo_chave = $tabelaOrigem != '' ? $tbInfo->campochavetabela($tabelaOrigem) : $tbInfo->campochavetabela($tabela);
+        $camposTabela = $tbInfo->campostabela($tabela);
+
+        $s['tabela'] = $tabelaOrigem != '' ? $tabelaOrigem : $tabela;
+        $s['tabelaConsulta'] = $tabela;
+        $s['tabelaOrigem'] = $tabelaOrigem;
+        $s['campos'] = array($campo_chave);
+        if (is_array($campos)) {
+            foreach ($campos as $key => $campo) {
+                $s['comparacao'][] = array('varchar', $campo, '=', trim($valores[$key]));
+            }
+        } else {
+            $s['comparacao'][] = array('varchar', $campos, '=', trim($valores));
+        }
+
+        $dataBase = $this->pegaDataBase($s['tabela']);
+
+        $sql = $this->montasql($s);
+
+        $res = $this->executasql($sql, $dataBase);
+        $lin = $this->retornosql($res);
+        $chave = isset($lin[$campo_chave]) && $lin[$campo_chave] > 0 ? $lin[$campo_chave] : '';
+        if ($mostrarsql) {
+            echo $sql;
+        }
+        return $chave;
     }
 
     /**
@@ -525,583 +1058,6 @@ class ConClasseGeral extends dadosConexao
     }
 
     /**
-     * Retorna a data e hora atual formatada.
-     *
-     * @return string Data e hora atual.
-     */
-    public function pegaDataHora(): string
-    {
-        return date('Y-m-d H:i:s');
-    }
-
-    /**
-     * Retorna o número de linhas afetadas pela última operação no banco de dados.
-     *
-     * @param string $dataBase (Opcional) Nome da base de dados.
-     * @return int Número de linhas afetadas.
-     */
-    public function linhasafetadas($dataBase = '')
-    {
-        //$TipoBase = isset($this->TipoBase) ? $this->TipoBase : 'MySQL';
-        $TipoBase = 'MySQL';
-
-        //Depois tenho que altrar.
-        $dataBase = $dataBase != '' ? $dataBase : $this->conexaoPadrao;
-
-        return $this->Conexoes[$dataBase]->affected_rows;
-
-        if ($TipoBase === 'MySQL') {
-            //return $this->ConexaoBase->affected_rows;
-        } else if ($TipoBase === 'SQLite') {
-            //return $this->ConexaoBase->data_count($res);
-        }
-    }
-
-    /**
-     * Converte um nome de tabela para o formato de classe em PHP.
-     *
-     * @param string $tabela Nome da tabela a ser convertida.
-     * @return string Nome da classe gerada a partir da tabela.
-     */
-    public function nomeClase(string $tabela): string
-    {
-        $temp = explode('_', $tabela);
-        $iniciaisExcluir = ['tb', 'tabela', 'table', 'view'];
-
-        foreach ($temp as $valor) {
-            if (!in_array($valor, $iniciaisExcluir)) {
-                $nomes[] = $valor;
-            }
-        }
-
-        $classe = '';
-        if (sizeof($nomes) > 0) {
-            foreach ($nomes as $key => $item) {
-                $classe .= $key == 0 ? $item : strtoupper(substr($item, 0, 1)) . substr($item, 1, strlen($item));
-            }
-        }
-        return $classe;
-    }
-
-
-
-    /**
-     * Monta uma condição SQL do tipo BETWEEN para um campo específico.
-     *
-     * @param string $campo Campo a ser utilizado na condição.
-     * @param string $valor Valores a serem considerados no formato 'valor1__valor2'.
-     * @return string Condição SQL montada.
-     */
-    public function montaSQLBetween($campo, $valor)
-    {
-        $tempB = explode('__', $valor);
-        $temDi = $tempB[0] != 'undefined' && $tempB[0] != '';
-        $temDf = $tempB[1] != 'undefined' && $tempB[1] != '';
-
-        $retorno = $campo;
-        if ($temDi) {
-            $di = $this->retornavalorparasql('date', $tempB[0]);
-            $retorno .= " >= $di ";
-        }
-        if ($temDf) {
-            $df = $this->retornavalorparasql('date', $tempB[1]);
-            $retorno .= $temDi ? " AND $campo <= $df" : " <= $df";
-        }
-        return $retorno;
-    }
-
-
-
-    /**
-     * Monta os filtros para um relatório a partir dos parâmetros informados.
-     *
-     * @param string $tabela Nome da tabela a ser consultada.
-     * @param array $filtros Filtros a serem aplicados na consulta.
-     * @return array Filtros formatados para exibição.
-     */
-    public function montaFiltrosRelatorios($tabela, $filtros)
-    {
-        $retorno['filtrosExibir'] = '';
-
-        $txt = new ManipulaStrings();
-        foreach ($filtros as $key => $val) {
-            if ($val['campo'] != '') {
-                $retorno['filtrosExibir'] .= $retorno['filtrosExibir'] != '' ? ' e ' : '';
-
-                if ($val['operador'] == 'between') {
-                    $temp = explode('__', $val['valor']);
-                    $temDi = $temp[0] != 'undefined' && $temp[0] != '';
-                    $temDf = $temp[1] != 'undefined' && $temp[1] != '';
-
-                    if ($temDi && $temDf) {
-                        $valorExibir = $temp[0] . ' e ' . $temp[1];
-                        $operadorExibir = 'Entre:';
-                    } else if ($temDi && !$temDf) {
-                        $valorExibir = $temp[0];
-                        $operadorExibir = 'A Partir de:';
-                    } else if (!$temDi && $temDf) {
-                        $valorExibir = $temp[1];
-                        $operadorExibir = 'Até:';
-                    }
-                    $retorno['filtrosExibir'] .= $val['texto'] . ' ' . $operadorExibir . ' ' . $valorExibir;
-                } else {
-                    $operador = $val['operador'] == 'like' ? 'contendo' : $val['operador'];
-                    $retorno['filtrosExibir'] .= $val['campo'] . ' ' . $operador . ' ' . $val['valor'];
-                    $campo = strtolower($val['campo']);
-                }
-            }
-        }
-        return $retorno;
-    }
-
-    /**
-     * Retorna a quantidade de itens selecionados em uma tabela para um determinado campo e valor.
-     *
-     * @param string $tabela Nome da tabela a ser consultada.
-     * @param string $campo Nome do campo a ser filtrado.
-     * @param mixed $valor Valor a ser filtrado.
-     * @return int Quantidade de itens selecionados.
-     */
-    public function qtditensselecionados($tabela, $campo, $valor)
-    {
-        $this->conecta();
-        $tabela = strtolower((string)$tabela);
-        $campo = strtolower($campo);
-        $sql = "SELECT COALESCE(COUNT($campo), 0) AS QTD FROM $tabela WHERE $campo = $valor";
-        $res = $this->executasql($sql);
-        $lin = $this->retornosql($res);
-        return $lin["QTD"];
-    }
-
-    /**
-     * Monta uma cláusula WHERE para uma consulta SQL a partir dos parâmetros informados.
-     *
-     * @param array $parametros Parâmetros para a montagem da cláusula WHERE.
-     * @return string Cláusula WHERE montada.
-     */
-    public function montaWhereSQL($parametros)
-    {
-        $p = $parametros;
-        $tabela = strtolower($parametros['tabela']);
-        $tabela_buscar_chave_primaria = $this->nometabela($tabela);
-
-        $tbInfo = new \ClasseGeral\TabelasInfo();
-        $formata = new \ClasseGeral\Formatacoes();
-
-
-        $campos_tabela = $tbInfo->campostabela($tabela);
-
-        $sql = ' FROM ' . $tabela;
-        $campo_chave = $tbInfo->campochavetabela($tabela_buscar_chave_primaria);
-
-        $sql .= ' WHERE ' . $campo_chave . ' >= 0';
-
-        if (isset($p['comparacao'])) {
-            foreach ($p['comparacao'] as $op) {
-                if (!is_array($op[0])) { //Neste caso é uma comparação simples
-
-                    $tipo = $op[0];
-                    $campo = strtolower($op[1]);
-
-                    $operador = $op[2] ?? '';
-                    $valor = isset($op[3]) ? $formata->retornavalorparasql($tipo, $op[3]) : '';
-
-                    if ($tipo == 'SQL') {
-                        $sql .= $campo; //Neste caso o sql esta na segunda posicao do array, por isso e jogada na variavel campo
-                    } elseif ($operador == 'like') {
-                        $valor = substr($valor, 1, strlen($valor) - 2);
-                        $valor = "'%" . $valor . "%'";
-                        $sql .= ' AND ' . $campo . ' LIKE ' . $valor;
-                    } elseif ($operador == 'inicial') {
-                        $valor = substr($valor, 1, strlen($valor) - 2);
-                        $valor = "'" . $valor . "%'";
-                        $sql .= ' AND ' . $campo . ' LIKE ' . $valor;
-                    } elseif ($operador == 'is' && $valor == "'null'") { //Neste caso é para comparar se o campo é nulo
-                        $sql .= ' AND ' . $campo . ' IS NULL';
-                    } else {
-                        $sql .= ' AND ' . $campo . ' ' . $operador . ' ' . $valor;
-                    }
-                } else if (is_array($op[0])) { //Neste caso é uma comparação utilizando or primeiro vou fazer para duas comparações, depois posso expandir para infinitas
-                    $tipos = $op[0];
-                    $campo = strtolower($op[1]);
-                    $operadores = $op[2];
-                    $valores = $op[3];
-
-                    $sql .= ' AND (';
-
-                    foreach ($tipos as $key => $tipo) {
-                        if ($key > 0) {
-                            $sql .= ' OR ';
-                        }
-                        if ($operadores[$key] == 'is' && $valores[$key] == "'null'") { //Neste caso é para comparar se o campo é nulo
-                            $sql .= ' ' . $campo . ' IS NULL ';
-                        } else {
-                            $valor = $formata->retornavalorparasql($tipo, $valores[$key]);
-                            if ($operadores[$key] === 'like') {
-                                $valor = substr($valor, 1, strlen($valor) - 2);
-                                $valor = "'%" . $valor . "%'";
-                            }
-                            $sql .= ' ' . $campo . ' ' . $operadores[$key] . ' ' . $valor;
-                        }
-                    }
-                    $sql .= ')';
-                }
-            }
-        }
-
-        if (isset($p['ordem'])) {
-            //Passo para maiusculo
-            $temp = strtolower($p['ordem']);
-            //Separo por virgula os campos que vao ordenar
-            $ordenacao = explode(',', $temp);
-            //varro o array
-            foreach ($ordenacao as $key => $campo_o) {
-                //Separo pelo espaco, pois pode ter desc na frente
-                $ordem = explode(' ', $campo_o);
-
-                if (array_key_exists($ordem[0], $campos_tabela)) {
-                    $sql .= isset($ordem[1]) ? " ORDER BY $ordem[0] $ordem[1]" : " ORDER BY $ordem[0]";
-                }
-            }
-        }
-
-        if (isset($p['limite'])) {
-            if (is_array($p['limite'])) {
-                $sql .= ' LIMIT ' . $p['limite'][0] . ', ' . $p['limite'][1];
-            } else {
-                $sql .= ' LIMIT ' . $p['limite'];
-            }
-        }
-        return $sql;
-    }
-
-    /**
-     * Retorna o nome das tabelas da base de dados.
-     *
-     * @return array Lista de tabelas da base de dados.
-     */
-    // public function tabelasbase($dataBase ='' )
-    // {
-    //     $array = array();
-    //     $this->conecta();
-    //     $base = $dataBase;
-    //     $sql = 'SHOW TABLES FROM ' . $base;
-    //     $res = $this->executasql($sql);
-    //     while ($lin = $this->retornosql($res)) {
-    //         $tabela = $lin['Tables_in_' . $base];
-    //         $array[] = $tabela;
-    //     }
-    //     $array = json_encode($array);
-    //     echo $array;
-    // }
-
-
-
-    /**
-     * Retorna o valor a ser exibido em uma consulta, formatando-o de acordo com o tipo do campo.
-     *
-     * @param string $tabela Nome da tabela do campo.
-     * @param string $campo Nome do campo.
-     * @param mixed $valor Valor a ser exibido.
-     * @return mixed Valor formatado para exibição.
-     */
-    public function valorexibirconsulta(string $tabela, string $campo, mixed $valor): mixed
-    {
-        $formata = new \ClasseGeral\Formatacoes();
-        $retorno = '';
-        $tabela = strtolower((string)$tabela);
-        $campo = strtolower($campo);
-
-        $tipo = $this->tipodadocampo($tabela, $campo);
-        //Comparando os campos para montar a variável de retorno
-        return $formata->formatavalorexibir($valor, $tipo);
-    }
-
-    /**
-     * Retorna o tipo de dado de um campo em uma tabela.
-     *
-     * @param string $tabela Nome da tabela.
-     * @param string $campo Nome do campo.
-     * @return string Tipo do dado do campo.
-     */
-    public function tipodadocampo($tabela, $campo)
-    {
-        $retorno = '';
-        $tabela = strtolower($tabela);
-        $campo = strtolower($campo);
-        $campos = $this->campostabela($tabela);
-        foreach ($campos as $key => $valores) {
-            if ($valores['campo'] == $campo)
-                $retorno = $valores['tipo'];
-        }
-        return $retorno;
-    }
-
-    /**
-     * Verifica se um objeto existe com base nos parâmetros informados.
-     *
-     * @param array $parametros Parâmetros para a verificação da existência do objeto.
-     * @return string JSON com informações sobre a existência do objeto.
-     */
-    public function objetoexistesimples(array $parametros): string
-    {
-        $tbInfo = new \ClasseGeral\TabelasInfo();
-        $tabela = strtolower($parametros['tabela']);
-
-        $config = $tbInfo->buscaConfiguracoesTabela($tabela);
-        $tabela = $config['tabelaOrigem'] ?? $tabela;
-
-        $campo = strtolower($parametros['campo']);
-        $valor = strtolower($parametros['valor']);
-        $chave = $parametros['chave'] ?? 0;
-
-        $campoChave = $tbInfo->campochavetabela($tabela);
-        $valorinformar = isset($parametros['valorinformar']) ? strtolower($parametros['valorinformar']) : $tbInfo->campochavetabela($tabela);
-
-        if ($valorinformar !== '') {
-            $sql = "SELECT $campo, $campoChave, $valorinformar FROM $tabela WHERE $campo = '$valor'";
-        } else {
-            $sql = "SELECT $campo, $campoChave FROM $tabela WHERE $campo = '$valor'";
-        }
-
-        $campo_chave = $tbInfo->campochavetabela($tabela);
-        if ($chave > 0) {
-            $sql .= " AND $campo_chave <> $chave";
-        }
-
-        $obj = $this->retornosqldireto($sql, '', $tabela);
-
-        $retorno['existe'] = 0;
-        $retorno['valorinformar'] = '';
-
-        if (sizeof($obj) >= 1) {
-            $lin = $obj[0];
-
-            $retorno['existe'] = 1;
-            $retorno['valorinformar'] = $valorinformar != '' ? $lin[$valorinformar] : '';
-        }
-
-        return json_encode($retorno);
-    }
-
-    /**
-     * Verifica se um objeto existe em uma tabela com base nos parâmetros informados.
-     *
-     * @param string $tabela Nome da tabela a ser consultada.
-     * @param string $campo Nome do campo a ser filtrado.
-     * @param mixed $valor Valor a ser filtrado.
-     * @param mixed $chave (Opcional) Chave primária do registro.
-     * @param string $campo_tab_pri (Opcional) Campo da tabela primária.
-     * @param mixed $valor_ctp (Opcional) Valor da chave primária.
-     * @return bool Retorna true se o objeto existe, caso contrário, false.
-     */
-    public function objetoexiste($tabela, $campo, $valor, $chave_primaria = '', $campo_tab_pri = '', $valor_ctp = '')
-    {
-        $tabela = strtolower($tabela);
-        $campo = strtolower($campo);
-        $campo_tab_pri = strtolower($campo_tab_pri);
-        if ($valor_ctp > 0) {
-            $sql = "SELECT $campo FROM $tabela WHERE LOWER($campo) = LOWER('$valor')";
-            $sql .= " AND $campo_tab_pri = $valor_ctp";
-        } else {
-            $sql = "SELECT $campo FROM $tabela WHERE $campo = " . $this->retornavalorparasql('varchar', $valor);
-        }
-
-        if ($chave_primaria > 0) {
-            $campo_chave = $this->campochavetabela($tabela);
-            $sql .= " AND $campo_chave != $chave_primaria";
-        }
-
-        $res = $this->executasql($sql, $this->pegaDataBase($tabela));
-        if ($this->linhasafetadas() > 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Verifica se um objeto composto existe em uma tabela com base nos parâmetros informados.
-     *
-     * @param string $tabela Nome da tabela a ser consultada.
-     * @param array $campos Campos a serem filtrados.
-     * @param array $valores Valores a serem considerados na filtragem.
-     * @param string $campo_chave (Opcional) Campo chave da tabela.
-     * @param mixed $chave_primaria (Opcional) Chave primária do registro.
-     * @param string $tipo (Opcional) Tipo de verificação (composto ou simples).
-     * @return mixed Retorna o valor da chave composta se existir, caso contrário, 0.
-     */
-    public function objetoexistecomposto($tabela, $campos, $valores, $campo_chave = '', $chave_primaria = '', $tipo = 'composto')
-    {
-        $tabela = strtolower($tabela);
-        $campo_chave = $campo_chave != '' ? strtolower($campo_chave) : $this->campochavetabela($tabela);
-
-        $sql = "SELECT $campo_chave FROM $tabela WHERE $campo_chave > 0";
-
-        foreach ($campos as $key => $val) {
-            $sql .= " AND " . strtolower($val) . " = " . $this->retornavalorparasql('varchar', $valores[$val]);
-        }
-
-        if ($chave_primaria > 0) {
-            $campo_chave = $this->campochavetabela($tabela);
-            $sql .= " AND $campo_chave != $chave_primaria";
-        }
-
-        $temp = $this->retornosqldireto($sql);
-
-        if (sizeof($temp) > 0) {
-            return $temp[0][strtolower($campo_chave)];
-        } else {
-            return 0;
-        }
-    }
-
-    /**
-     * Verifica se um registro está em uso em tabelas relacionadas.
-     *
-     * @param string $tabela_e Nome da tabela a ser consultada.
-     * @param string $campo_chave_e Nome do campo chave da tabela.
-     * @param mixed $chave_e Valor da chave a ser verificado.
-     * @param string $tabela_ignorar (Opcional) Tabela a ser ignorada na verificação.
-     * @param bool $exibirsql (Opcional) Se deve ou não exibir a query SQL gerada.
-     * @return int Retorna 1 se o registro estiver em uso, caso contrário, 0.
-     */
-    public function objetoemuso($tabela_e, $campo_chave_e, $chave_e, $tabela_ignorar = 'nenhuma', $exibirsql = false)
-    {
-        $retorno = 0;
-        $tabela = $this->nometabela($tabela_e);
-        $campo_chave = strtolower($campo_chave_e);
-        $dataBase = $this->pegaDataBase($tabela_e);
-
-        $sql = "select tabela_secundaria, campo_secundario from view_relacionamentos";
-        $sql .= " where tabela_principal = '$tabela' and campo_principal = '$campo_chave'";
-
-        //Esta comparacao e principalmente para os casos de tabelas de imagens,
-        //onde ao excluir o item principal excluirei tambem as imagens
-        if ($tabela_ignorar != 'nenhuma' && $tabela_ignorar != '') {
-            $tabela_ignorar = strtolower($tabela_ignorar);
-            $sql .= "and tabela_secundaria != '$tabela_ignorar'";
-        }
-
-        $res = $this->executasql($sql, $dataBase);
-
-        while ($lin = $this->retornosql($res)) {
-
-            $tabela_sec = $lin['tabela_secundaria'];
-            $campo_sec = $lin['campo_secundario'];
-
-            $sql1 = "select $campo_sec from $tabela_sec where $campo_sec = $chave_e";
-            $res1 = $this->executasql($sql1, $this->pegaDataBase($tabela));
-
-            if ($this->linhasafetadas() > 0) {
-                $retorno = 1;
-            }
-        }
-
-        if ($exibirsql == true) {
-            echo $sql;
-        }
-        return $retorno;
-    }
-
-    /**
-     * Retorna os dados de um registro como um array associativo.
-     *
-     * @param string $tabela Nome da tabela a ser consultada.
-     * @param mixed $chave Valor da chave do registro.
-     * @return array Dados do registro.
-     */
-    public function arraydadostabela($tabela, $chave)
-    {
-        $tabela = strtolower($tabela);
-        $campo_chave = $this->campochavetabela($tabela);
-        $chave = $chave;
-        //buscando os campos da tabela
-        $campos = $this->campostabela($tabela);
-
-        $retorno = array();
-        //Montando o sql
-        $sql = "SELECT * FROM $tabela WHERE $campo_chave = $chave";
-        $res = $this->executasql($sql);
-        $lin = $this->retornosql($res);
-
-        foreach ($campos as $key => $valores) {
-            $tipo = $valores['tipo'];
-            $campo = $valores['campo'];
-            //Comparando os campos para montar a variável de retorno
-            if ($tipo == 'int' || $tipo == 'float') {
-                $retorno[$campo] = $lin[$campo];
-            } else if ($tipo == 'varchar' || $tipo == 'char') {
-                $retorno[$campo] = $lin[$campo];
-            } else if ($tipo == 'longtext') {
-                $retorno[$campo] = base64_decode($lin[$campo]);
-            } else if ($tipo == 'date') {
-                $retorno[$campo] = date('d/m/Y', strtotime($lin[$campo]));
-            }
-        }
-        return $retorno;
-    }
-
-    /**
-     * Busca um valor em uma tabela com base na chave primária.
-     *
-     * @param string $tabela Nome da tabela a ser consultada.
-     * @param string $campo Nome do campo a ser buscado.
-     * @param string $campo_chave Nome do campo chave da tabela.
-     * @param mixed $chave Valor da chave a ser buscada.
-     * @return mixed Valor encontrado ou null.
-     */
-    public function buscaumcampotabela($tabela, $campo, $campo_chave, $chave)
-    {
-        $tabela = strtolower($tabela);
-        $campo = strtolower($campo);
-        $campo_chave = strtolower($campo_chave);
-        $sql = "SELECT $campo FROM $tabela WHERE $campo_chave = $chave";
-        $res = $this->executasql($sql);
-        $lin = $this->retornosql($res);
-        return $lin[$campo];
-    }
-
-    /**
-     * Função que retorno a chave de um registro por um ou mais campos
-     * @param texto $tabela Tabela que sera buscada
-     * @param texto /array $campos Pode ser um campo ou um array com varios
-     * @param texto /array $valores Tem que seguir a quantidade de campos
-     * @param boolean $mostrarsql Se ira mostrar o sql gerado pela rotina
-     * @return integer Retorna a chave do registro
-     */
-    public function buscachaveporcampos(string $tabela, $campos, $valores, $tabelaOrigem = '', bool $mostrarsql = false): int|string
-    {
-        $tbInfo = new \ClasseGeral\TabelasInfo();
-        $campo_chave = $tabelaOrigem != '' ? $tbInfo->campochavetabela($tabelaOrigem) : $tbInfo->campochavetabela($tabela);
-        $camposTabela = $tbInfo->campostabela($tabela);
-
-        $s['tabela'] = $tabelaOrigem != '' ? $tabelaOrigem : $tabela;
-        $s['tabelaConsulta'] = $tabela;
-        $s['tabelaOrigem'] = $tabelaOrigem;
-        $s['campos'] = array($campo_chave);
-        if (is_array($campos)) {
-            foreach ($campos as $key => $campo) {
-                $s['comparacao'][] = array('varchar', $campo, '=', trim($valores[$key]));
-            }
-        } else {
-            $s['comparacao'][] = array('varchar', $campos, '=', trim($valores));
-        }
-
-        $dataBase = $this->pegaDataBase($s['tabela']);
-
-        $sql = $this->montasql($s);
-
-        $res = $this->executasql($sql, $dataBase);
-        $lin = $this->retornosql($res);
-        $chave = isset($lin[$campo_chave]) && $lin[$campo_chave] > 0 ? $lin[$campo_chave] : '';
-        if ($mostrarsql) {
-            echo $sql;
-        }
-        return $chave;
-    }
-
-    /**
      * Funcao que busca um ou mais campos de uma tabela por sua chave
      * @param string $tabela Tabela que sera buscada
      * @param string|array $campos Campos que serao buscados
@@ -1145,10 +1101,6 @@ class ConClasseGeral extends dadosConexao
         $retorno = $temp['qtd'] > 0;
         return (int)$retorno;
     }
-
-
-
-
 
     /**
      * Retorna o próximo valor disponível para uma chave, considerando a tabela e a sequência.
@@ -1337,7 +1289,7 @@ class ConClasseGeral extends dadosConexao
             $sql .= " AND TP.chave_empresa IN(SELECT chave_empresa FROM usuarios_empresas WHERE chave_usuario= $chave_usuario)";
         }
 
-       // @session_start();
+        // @session_start();
         $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
 
         $configuracoesTabela = [];
@@ -1396,6 +1348,12 @@ class ConClasseGeral extends dadosConexao
         }
         return json_encode($retorno);
         //*/
+    }
+
+    public function buscaUsuarioLogado()
+    {
+        $sessao = new \ClasseGeral\ManipulaSessao();
+        return $sessao->pegar('usuario');
     }
 
     /**
@@ -1499,13 +1457,6 @@ class ConClasseGeral extends dadosConexao
         return $retorno;
     }
 
-    /*
-     * Função que pega um texto separado por um elemento e retorna um array
-     * @param string $separador é o elemento que separa um texto, pode ser ',' '-' ou outro caracter
-     * @param string $texto é o texto a ser convertido, exemplo 1,2,3,4
-     * @return array $retorno é o texto convertido em um array
-     */
-
     /**
      * Realiza a soma de dois valores em formato de texto.
      *
@@ -1519,6 +1470,13 @@ class ConClasseGeral extends dadosConexao
         $v2 = $this->retornavalorparasql('float', $valor2);
         return $this->formatavalorexibir($v1 + $v2, 'float');
     }
+
+    /*
+     * Função que pega um texto separado por um elemento e retorna um array
+     * @param string $separador é o elemento que separa um texto, pode ser ',' '-' ou outro caracter
+     * @param string $texto é o texto a ser convertido, exemplo 1,2,3,4
+     * @return array $retorno é o texto convertido em um array
+     */
 
     /**
      * Realiza a subtração entre dois valores em formato de texto.
@@ -1575,8 +1533,9 @@ class ConClasseGeral extends dadosConexao
     {
         $retornoTemp = array();
         foreach ($array as $item) {
-            if (isset($item[$campoAgrupamento])) {
-                if (sizeof($item) == 1) {
+            $temValor = isset($item[$campoAgrupamento]) && $item[$campoAgrupamento] != '' && $item[$campoAgrupamento] != null;
+            if ($temValor) {
+                if (sizeof($item) == 1 ) {
                     $retornoTemp[$item[$campoAgrupamento]] = $item;
                 } else {
                     $retornoTemp[$item[$campoAgrupamento]][] = $item;
@@ -1664,6 +1623,18 @@ class ConClasseGeral extends dadosConexao
     }
 
     /**
+     * Retorna o caminho base da API local.
+     * @return string Caminho absoluto da API local.
+     */
+    public function pegaCaminhoApi()
+    {
+        if (isset($_SESSION[session_id()]['caminhoApiLocal']))
+            return $_SESSION[session_id()]['caminhoApiLocal'];
+        else
+            return $_SERVER['DOCUMENT_ROOT'] . '/';
+    }
+
+    /**
      * Verifica se uma função existe em uma classe e, se necessário, inclui o arquivo da classe.
      *
      * @param mixed $classe Classe ou nome da classe a ser verificada.
@@ -1723,6 +1694,11 @@ class ConClasseGeral extends dadosConexao
         return $retorno;
     }
 
+    public function pegaChaveAcesso()
+    {
+        return isset($_SESSION[session_id()]['usuario']['chave_acesso']) ? $_SESSION[session_id()]['usuario']['chave_acesso'] : null;
+    }
+
     /**
      * Adiciona um AND a uma cláusula SQL, se necessário.
      *
@@ -1739,12 +1715,5 @@ class ConClasseGeral extends dadosConexao
         $copiaSQLFinal = substr($sqlLocal, $inicioCopia, 3);
         $substituir = $copiaSQLFinal == 'AND' || trim(substr($sqlLocal, $tamanho - 5, 5)) == 'AND (' || trim(substr($sqlLocal, $tamanho - 2, 2) == 'OR');
         return $substituir ? '' : ' AND ';
-    }
-
-
-
-    public function pegaChaveAcesso()
-    {
-        return isset($_SESSION[session_id()]['usuario']['chave_acesso']) ? $_SESSION[session_id()]['usuario']['chave_acesso'] : null;
     }
 }
