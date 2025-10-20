@@ -123,8 +123,9 @@ class ClasseGeral extends ConClasseGeral
         $configTP = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
 
         $classe = $configTP['classe'] ?? $this->nomeClase($p['tabela']);
+        $nomeMenuPermissoes = $configTP['nomeMenuPermissoes']?? $classe;
 
-        $permissao = $this->validarPermissaoUsuario($classe, 'Alterar');
+        $permissao = $this->validarPermissaoUsuario($nomeMenuPermissoes, 'Alterar');
 
         if (isset($permissao['aviso']))
             return json_encode($permissao);

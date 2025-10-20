@@ -256,7 +256,12 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
                 //Varrendo as tabelas relacionadas
                 foreach ($conf['tabelasRelacionadas'] as $tabelaR => $infoTabelaR) {
                     //Pegando a variavel que contem os dados, vendo se e um array ou se esta direto na raiz
-                    $variavelTabRel = $infoTabelaR['raizModelo'] ?? 'raiz';
+
+                    $variavelTabRel = '';
+                    if (isset($dados[$tabelaR]))
+                        $variavelTabRel = $tabelaR;
+                    else
+                        $variavelTabRel = $infoTabelaR['raizModelo'] ?? 'raiz';
 
                     //Pegando o campo chave da tabela
                     $campoChaveTabRel = $tabInfo->campochavetabela($tabelaR, $infoTabelaR);
@@ -962,10 +967,15 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
     {
         $tbInfo = new \ClasseGeral\TabelasInfo();
 
+
         $p = $parametros;
+        $configTb = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
+
         $refazerConsulta = $parametros['refazerConsulta'] ?? false;
 
-        $permissao = $this->validarPermissaoUsuario($this->nomeClase($p['tabela']), 'Excluir');
+        $nomeMenuPermissoes = $configTb['nomeMenuPermissoes'] ?? $this->nomeClase($p['tabela']);
+
+        $permissao = $this->validarPermissaoUsuario($nomeMenuPermissoes, 'Excluir');
         if (isset($permissao['aviso']))
             return json_encode($permissao);
 
@@ -1035,10 +1045,8 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         $novaConsulta = [];
         if ($refazerConsulta) {
             if ($nova_chave > 0) {
-                $temp = $this->nomeClase($nomeTabela);
-
                 $consulta = new \ClasseGeral\ConsultaDados();
-                $novaConsulta = $consulta->consulta($_SESSION[session_id()]['consultas'][$temp]['parametrosConsulta'], 'array');
+                $novaConsulta = $consulta->consulta($_SESSION[session_id()]['consultas'][$nomeMenuPermissoes]['parametrosConsulta'], 'array');
             }
         }
 

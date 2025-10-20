@@ -36,6 +36,10 @@ $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
 $app->add(function (Request $request, $handler) {
+    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
+    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+    date_default_timezone_set('America/Sao_Paulo');
+
     if ($request->getMethod() === 'OPTIONS') {
         $response = new \Slim\Psr7\Response();
         return $response
@@ -46,12 +50,7 @@ $app->add(function (Request $request, $handler) {
             ->withHeader('Access-Control-Allow-Credentials', 'true')
             ->withStatus(200);
     }
-
     $response = $handler->handle($request);
-
-    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
-    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
-    date_default_timezone_set('America/Sao_Paulo');
 
     return $response
         ->withHeader('Access-Control-Allow-Origin', '*')
@@ -63,7 +62,7 @@ $app->add(function (Request $request, $handler) {
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
-    $sessionId = 'bhq7bd36f8mq9vbil0p2a0d451'; // $request->getHeaderLine('x-session-id');
+    $sessionId = $request->getHeaderLine('x-session-id');
 
     if ($sessionId) {
         session_id($sessionId);

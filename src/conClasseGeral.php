@@ -9,8 +9,11 @@ namespace ClasseGeral;
  * manipulação de sessões, validação de campos obrigatórios, entre outros.
  */
 $temp = __DIR__;
-if (isset($_SESSION[session_id()]['caminhoApiLocal']))
-    include $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/dadosConexao.class.php';
+if (isset($_SESSION[session_id()]['caminhoApiLocal'])) {
+    $arq = $_SESSION[session_id()]['caminhoApiLocal'] . '/api/backLocal/classes/dadosConexao.class.php';
+    if (is_file($arq))
+        require_once $arq;
+}
 else
     include $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php';
 
@@ -527,6 +530,10 @@ class ConClasseGeral extends dadosConexao
     {
         $consulta = new ConsultaDados();
         return $consulta->retornosqldireto($sql, $acao, $tabela, $dataBase, $mostrarsql, $formatar);
+    }
+
+    public function retornavalorparasql(string $tipo, mixed $valor, string $origem = 'consulta', string $campo = ''): mixed{
+        return (new \ClasseGeral\Formatacoes)->retornavalorparasql($tipo, $valor, $origem, $campo);
     }
 
     /**
@@ -1630,8 +1637,12 @@ class ConClasseGeral extends dadosConexao
     {
         if (isset($_SESSION[session_id()]['caminhoApiLocal']))
             return $_SESSION[session_id()]['caminhoApiLocal'];
-        else
-            return $_SERVER['DOCUMENT_ROOT'] . '/';
+        else{
+            $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
+            $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+            return $caminho;
+        }
+
     }
 
     /**

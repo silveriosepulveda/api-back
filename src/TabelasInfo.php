@@ -65,8 +65,8 @@ class TabelasInfo extends \ClasseGeral\ClasseGeral
         $caminhoAPILocal = $this->pegaCaminhoApi();
         $configuracoesTabela = [];
 
-        if (is_file($caminhoAPILocal . 'api/backLocal/classes/configuracoesTabelas.class.php')) {
-            require_once $caminhoAPILocal . 'api/backLocal/classes/configuracoesTabelas.class.php';
+        if (is_file($caminhoAPILocal . '/api/backLocal/classes/configuracoesTabelas.class.php')) {
+            require_once $caminhoAPILocal . '/api/backLocal/classes/configuracoesTabelas.class.php';
 
 
             $configuracoesTabelaTemp = new('\\configuracoesTabelas')();

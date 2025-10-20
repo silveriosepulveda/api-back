@@ -99,12 +99,13 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
      * @param string $campo (Opcional) Nome do campo relacionado ao valor.
      * @return mixed Valor formatado.
      */
-    public function retornavalorparasql($tipo, $valor, $origem = 'consulta', $campo = '')
+    public function retornavalorparasql(string $tipo, mixed $valor, string $origem = 'consulta', string $campo = ''): mixed
     {
         if ($valor === 'undefined')
             $valor = null;
 
         if (($tipo == 'varchar' || $tipo == 'char') && !is_array($valor)) {
+            $valor = $valor != null ? $valor : '';
             $valor = "'" . trim(str_replace("'", "\'", $valor), '"') . "'";
         } else if ($tipo == 'longtext' || $tipo == 'text') {
             if ($valor != 'undefined') {
