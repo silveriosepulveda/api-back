@@ -29,7 +29,7 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
      * @param bool $htmlentitie (Opcional) Se deve ou não aplicar htmlentities no valor.
      * @return string Valor formatado para exibição.
      */
-    public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): null | string
+    public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): mixed
     {
         $retorno = '';
 

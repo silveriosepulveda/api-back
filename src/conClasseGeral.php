@@ -473,7 +473,7 @@ class ConClasseGeral extends dadosConexao
         return $retorno;
     }
 
-    public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): string|null
+    public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): mixed
     {
         $formata = new \ClasseGeral\Formatacoes();
         return $formata->formatavalorexibir($valor, $tipo, $htmlentitie);
