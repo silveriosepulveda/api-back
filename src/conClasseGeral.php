@@ -2,6 +2,8 @@
 
 namespace ClasseGeral;
 
+use PharIo\Manifest\Manifest;
+
 /**
  * Classe base para operações de conexão e manipulação de dados gerais.
  *
@@ -9,6 +11,8 @@ namespace ClasseGeral;
  * manipulação de sessões, validação de campos obrigatórios, entre outros.
  */
 $temp = __DIR__;
+require_once __DIR__ . '/ClassesCache.php';
+
 if (isset($_SESSION[session_id()]['caminhoApiLocal'])) {
     $arq = $_SESSION[session_id()]['caminhoApiLocal'] . '/api/backLocal/classes/dadosConexao.class.php';
     if (is_file($arq))
@@ -29,42 +33,185 @@ class ConClasseGeral extends dadosConexao
      * Mapeamento de sexo por extenso.
      * @var array
      */
-    public $sexoporextenso = array('M' => 'Masculino', 'F' => 'Feminino');
+    public array $sexoporextenso = array('M' => 'Masculino', 'F' => 'Feminino');
 
     /**
      * Mapeamento de tipo de pessoa.
      * @var array
      */
-    public $tipoPessoa = array('F' => 'Física', 'J' => 'Jurídica');
+    public array $tipoPessoa = array('F' => 'Física', 'J' => 'Jurídica');
 
     /**
      * Extensões de arquivos de imagem suportadas.
      * @var array
      */
-    public $extensoes_imagem = array('jpg', 'jpeg', 'gif', 'png');
+    public array $extensoes_imagem = array('jpg', 'jpeg', 'gif', 'png');
 
     /**
      * Extensões de arquivos suportadas.
      * @var array
      */
-    public $extensoes_arquivos = array('doc', 'docx', 'pdf', 'xls', 'xlsx', 'txt', 'rar');
+    public array $extensoes_arquivos = array('doc', 'docx', 'pdf', 'xls', 'xlsx', 'txt', 'rar');
 
     /**
      * Quebra de linha padrão.
      * @var string
      */
-    public $q = "\n";
+    public string $q = "\n";
 
     /**
      * Array de conexões abertas.
      * @var array
      */
-    public $Conexoes;
+    public array $Conexoes;
+
+    /**
+     * Gerenciador de cache de classes
+     * @var ClassesCache|null
+     */
+    private ?ClassesCache $classesCache = null;
+
+    /**
+     * Garante que o cache de classes está inicializado
+     * @return ClassesCache
+     */
+    private function pegaClassesCache(): ClassesCache
+    {
+        if ($this->classesCache === null) {
+            $this->classesCache = new ClassesCache();
+        }
+        return $this->classesCache;
+    }
 
     public function __construct()
     {
         parent::__construct();
         $teste = $this->bases;
+        $this->classesCache = new ClassesCache();
+    }
+
+    /**
+     * Retorna uma instância cached da classe ConsultaDados
+     * @return ConsultaDados
+     */
+    protected function pegaConsultaDados(): ConsultaDados
+    {
+        return $this->pegaClassesCache()->pegaConsultaDados();
+    }
+
+    /**
+     * Retorna uma instância cached da classe ManipulaDados
+     * @return ManipulaDados
+     */
+    protected function pegaManipulaDados(): ManipulaDados
+    {
+        return $this->pegaClassesCache()->pegaManipulaDados();
+    }
+
+    /**
+     * Retorna uma instância cached da classe TabelasInfo
+     * @return TabelasInfo
+     */
+    protected function pegaTabelasInfo(): TabelasInfo
+    {
+        return $this->pegaClassesCache()->pegaTabelasInfo();
+    }
+
+    /**
+     * Retorna uma instância cached da classe Formatacoes
+     * @return Formatacoes
+     */
+    protected function pegaFormatacoes(): Formatacoes
+    {
+        return $this->pegaClassesCache()->pegaFormatacoes();
+    }
+
+    /**
+     * Retorna uma instância cached da classe ManipulaSessao
+     * @return ManipulaSessao
+     */
+    protected function pegaManipulaSessao(): ManipulaSessao
+    {
+        return $this->pegaClassesCache()->pegaManipulaSessao();
+    }
+
+    /**
+     * Retorna uma instância cached da classe ManipulaValores
+     * @return ManipulaValores
+     */
+    protected function pegaManipulaValores(): ManipulaValores
+    {
+        return $this->pegaClassesCache()->pegaManipulaValores();
+    }
+
+    /**
+     * Retorna uma instância cached de UploadSimples
+     * @return UploadSimples
+     */
+    protected function pegaUploadSimples(): UploadSimples
+    {
+        return $this->pegaClassesCache()->pegaUploadSimples();
+    }
+
+    /**
+     * Retorna uma instância cached de GerenciaDiretorios
+     * @return GerenciaDiretorios
+     */
+    protected function pegaGerenciaDiretorios(): GerenciaDiretorios
+    {
+        return $this->pegaClassesCache()->pegaGerenciaDiretorios();
+    }
+
+    /**
+     * Retorna uma instância cached de ManipulaStrings
+     * @return ManipulaStrings
+     */
+    protected function pegaManipulaStrings(): ManipulaStrings
+    {
+        return $this->pegaClassesCache()->pegaManipulaStrings();
+    }
+
+    /**
+     * Retorna uma instância cached de configuracoesTabelas
+     * @return mixed
+     */
+    protected function pegaConfiguracoesTabelas(): mixed
+    {
+        return $this->pegaClasseCache('configuracoesTabelas');
+    }
+
+    /**
+     * Método genérico para cache de instâncias por nome de classe
+     * @param string $className Nome da classe
+     * @return mixed Instância da classe
+     */
+    protected function pegaClasseCache(string $className): mixed
+    {
+        return $this->pegaClassesCache()->pegaClasseCache($className);
+    }
+
+    /**
+     * Limpa o cache de instâncias (útil para testes ou liberação de memória)
+     * @param string|null $className Se especificado, limpa apenas essa classe do cache
+     * @return void
+     */
+    public function clearInstanceCache(?string $className = null): void
+    {
+        if ($this->classesCache !== null) {
+            $this->classesCache->clearInstanceCache($className);
+        }
+    }
+
+    /**
+     * Limpa apenas o cache de classes de tabela
+     * @param string|null $classe Se especificado, limpa apenas essa classe de tabela do cache
+     * @return void
+     */
+    public function clearTabelaCache(?string $classe = null): void
+    {
+        if ($this->classesCache !== null) {
+            $this->classesCache->clearTabelaCache($classe);
+        }
     }
 
     /**
@@ -285,11 +432,19 @@ class ConClasseGeral extends dadosConexao
 
     public function buscaConfiguracoesTabela(string $tabela, string $tipoTabela = 'Principal'): array
     {
-        return (new TabelasInfo)->buscaConfiguracoesTabela($tabela, $tipoTabela);
+        return $this->pegaTabelasInfo()->buscaConfiguracoesTabela($tabela, $tipoTabela);
     }
 
     public function inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed {
-        return (new ManipulaDados)->inclui($tabela, $dados, $chave_primaria, $mostrarsql, $inserirLog, $formatar);
+        return $this->pegaManipulaDados()->inclui($tabela, $dados, $chave_primaria, $mostrarsql, $inserirLog, $formatar);
+    }
+
+    public function validarCamposObrigatorios(array $configuracao, array $dados, array $retorno = []): array{
+        return $this->pegaManipulaDados()->validarCamposObrigatorios($configuracao, $dados, $retorno);
+    }
+
+    public function buscarDuplicidadeCadastro(array $configuracoes, array $dados): bool{
+        return $this->pegaManipulaDados()->buscarDuplicidadeCadastro($configuracoes, $dados);
     }
 
     public function exclui(string $tabela, string $campo_chave, string $chave, string $tabela_relacionada = 'nenhuma', bool $exibirsql= false): bool|string
@@ -300,12 +455,17 @@ class ConClasseGeral extends dadosConexao
             'chave' => $chave,
             'exibirsql' => $exibirsql
         ];
-        $retorno = json_decode((new ManipulaDados())->excluir($parametros), true);
+        $retorno = json_decode($this->pegaManipulaDados()->excluir($parametros), true);
         return json_encode(['chave' => $retorno['chave']]);
     }
 
+    public function buscarEstrutura($parametros, $tipoRetorno = 'json'): bool|array|string
+    {
+        return $this->pegaClassesCache()->pegaEstruturas()->buscarEstrutura($parametros, $tipoRetorno);
+    }
+
     public function altera(string $tabela, array $dados, null|int $chave = 0, bool $mostrarsql = false, bool $inserirLog = true): mixed{
-        return (new ManipulaDados)->altera($tabela, $dados, $chave, $mostrarsql, $inserirLog);
+        return $this->pegaManipulaDados()->altera($tabela, $dados, $chave, $mostrarsql, $inserirLog);
     }
     /**
      * Retorna o próximo registro de um resultado de query.
@@ -430,7 +590,7 @@ class ConClasseGeral extends dadosConexao
 
     public function nometabela(string $tabela): string
     {
-        return (new TabelasInfo)->nometabela($tabela);
+        return $this->pegaTabelasInfo()->nometabela($tabela);
     }
 
     /**
@@ -465,7 +625,7 @@ class ConClasseGeral extends dadosConexao
         $retorno = '';
         $tabela = strtolower($tabela);
         $campo = strtolower($campo);
-        $campos = $this->campostabela($tabela);
+        $campos = $this->pegaTabelasInfo()->campostabela($tabela);
         foreach ($campos as $key => $valores) {
             if ($valores['campo'] == $campo)
                 $retorno = $valores['tipo'];
@@ -475,8 +635,7 @@ class ConClasseGeral extends dadosConexao
 
     public function formatavalorexibir(mixed $valor, string $tipo, bool $htmlentitie = true): mixed
     {
-        $formata = new \ClasseGeral\Formatacoes();
-        return $formata->formatavalorexibir($valor, $tipo, $htmlentitie);
+        return $this->pegaFormatacoes()->formatavalorexibir($valor, $tipo, $htmlentitie);
     }
 
     /**
@@ -528,12 +687,11 @@ class ConClasseGeral extends dadosConexao
 
     public function retornosqldireto(string|array $sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true): array
     {
-        $consulta = new ConsultaDados();
-        return $consulta->retornosqldireto($sql, $acao, $tabela, $dataBase, $mostrarsql, $formatar);
+        return $this->pegaConsultaDados()->retornosqldireto($sql, $acao, $tabela, $dataBase, $mostrarsql, $formatar);
     }
 
     public function retornavalorparasql(string $tipo, mixed $valor, string $origem = 'consulta', string $campo = ''): mixed{
-        return (new \ClasseGeral\Formatacoes)->retornavalorparasql($tipo, $valor, $origem, $campo);
+        return $this->pegaFormatacoes()->retornavalorparasql($tipo, $valor, $origem, $campo);
     }
 
     /**
@@ -560,7 +718,7 @@ class ConClasseGeral extends dadosConexao
         }
 
         if ($chave_primaria > 0) {
-            $campo_chave = $this->campochavetabela($tabela);
+            $campo_chave = $this->pegaTabelasInfo()->campochavetabela($tabela);
             $sql .= " AND $campo_chave != $chave_primaria";
         }
 
@@ -629,7 +787,7 @@ class ConClasseGeral extends dadosConexao
     public function objetoexistecomposto($tabela, $campos, $valores, $campo_chave = '', $chave_primaria = '', $tipo = 'composto')
     {
         $tabela = strtolower($tabela);
-        $campo_chave = $campo_chave != '' ? strtolower($campo_chave) : $this->campochavetabela($tabela);
+        $campo_chave = $campo_chave != '' ? strtolower($campo_chave) : $this->pegaTabelasInfo()->campochavetabela($tabela);
 
         $sql = "SELECT $campo_chave FROM $tabela WHERE $campo_chave > 0";
 
@@ -638,7 +796,7 @@ class ConClasseGeral extends dadosConexao
         }
 
         if ($chave_primaria > 0) {
-            $campo_chave = $this->campochavetabela($tabela);
+            $campo_chave = $this->pegaTabelasInfo()->campochavetabela($tabela);
             $sql .= " AND $campo_chave != $chave_primaria";
         }
 
@@ -709,10 +867,10 @@ class ConClasseGeral extends dadosConexao
     public function arraydadostabela($tabela, $chave)
     {
         $tabela = strtolower($tabela);
-        $campo_chave = $this->campochavetabela($tabela);
+        $campo_chave = $this->pegaTabelasInfo()->campochavetabela($tabela);
         $chave = $chave;
         //buscando os campos da tabela
-        $campos = $this->campostabela($tabela);
+        $campos = $this->pegaTabelasInfo()->campostabela($tabela);
 
         $retorno = array();
         //Montando o sql
@@ -1059,7 +1217,7 @@ class ConClasseGeral extends dadosConexao
      *
      * @return mixed Chave de usuário ou null.
      */
-    public function pegaChaveUsuario()
+    public function pegaChaveUsuario(): mixed
     {
         return isset($_SESSION[session_id()]['usuario']['chave_usuario']) ? $_SESSION[session_id()]['usuario']['chave_usuario'] : null;
     }
@@ -1074,8 +1232,8 @@ class ConClasseGeral extends dadosConexao
      */
     public function buscacamposporchave(string $tabela, string|array $campos, string $chave, bool $mostrarsql = false): array
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
-        $formata = new \ClasseGeral\Formatacoes();
+        $tabInfo = $this->pegaTabelasInfo();
+        $formata = $this->pegaFormatacoes();
 
         $campo_chave = $tabInfo->campochavetabela($tabela);
 
@@ -1359,8 +1517,7 @@ class ConClasseGeral extends dadosConexao
 
     public function buscaUsuarioLogado()
     {
-        $sessao = new \ClasseGeral\ManipulaSessao();
-        return $sessao->pegar('usuario');
+        return $this->pegaManipulaSessao()->pegar('usuario');
     }
 
     /**
@@ -1612,21 +1769,14 @@ class ConClasseGeral extends dadosConexao
     }
 
     /**
-     * Cria uma instância de uma classe a partir do nome da classe.
+     * Cria uma instância de uma classe a partir do nome da classe com cache.
      *
      * @param string $classe Nome da classe a ser instanciada.
      * @return mixed Instância da classe ou false em caso de falha.
      */
     public function criaClasseTabela($classe)
     {
-        $caminhoApiLocal = $this->pegaCaminhoApi();
-        $arquivo = $caminhoApiLocal . 'api/backLocal/classes/' . $classe . '.class.php';
-        if (is_file($arquivo)) {
-            require_once $arquivo;
-            return new $classe();
-        } else {
-            return false;
-        }
+        return $this->pegaClassesCache()->criaClasseTabela($classe, [$this, 'pegaCaminhoApi']);
     }
 
     /**
@@ -1654,19 +1804,7 @@ class ConClasseGeral extends dadosConexao
      */
     public function criaFuncaoClasse($classe, $funcao)
     {
-        if (gettype($classe) == 'string' && !class_exists($classe)) {
-            $arquivoClasse = $this->pegaCaminhoApi() . 'api/backLocal/classes/' . $classe . '.class.php';
-            if (file_exists($arquivoClasse)) {
-                require_once $arquivoClasse;
-                $classe = new $classe();
-            }
-        }
-
-        if ($classe != '' && method_exists($classe, $funcao)) {
-            return true;
-        } else {
-            return false;
-        }
+        return $this->pegaClassesCache()->criaFuncaoClasse($classe, $funcao, [$this, 'pegaCaminhoApi']);
     }
 
     /**

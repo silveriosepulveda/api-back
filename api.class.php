@@ -69,16 +69,6 @@ $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
     }
     @session_start();
 
-//    $response = new \Slim\Psr7\Response();
-//
-//    $authHeader = $request->getHeaderLine('Authorization');
-//
-//    if (!$authHeader || $authHeader !== $secretKey) {
-//        $response->withStatus(401)->withHeader('Content-Type', 'application/json')->getBody()->write(json_encode(['erro' => 'Não Autorizado!']));
-//        return $response;
-//    }
-
-
     return $handler->handle($request);
 };
 
@@ -275,8 +265,9 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
 //Anexar Arquivos
 $app->post('/anexarArquivos', function (Request $request, Response $response, $argumentos) {
     continuar();
-    if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/classeGeralLocal.class.php')) {
-        require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/classeGeralLocal.class.php';
+    $cam =  $_SESSION[session_id()]['caminhoApiLocal'];
+    if (is_file( $cam . 'api/backLocal/classes/classeGeralLocal.class.php')) {
+        require_once $cam . 'api/backLocal/classes/classeGeralLocal.class.php';
         $anexar = new \ClasseGeral\classeGeralLocal();
     } else {
         //require_once 'classes/classeGeral.class.php';

@@ -6,12 +6,12 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 {
     public function manipula(array $parametros, array $arquivos = [])
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
+        $tabInfo = $this->pegaTabelasInfo();
 
         $chave = 0;
         $p = $parametros;
 
-        $caminhoApiLocal = $this->pegaCaminhoApi();// $_SESSION[session_id()]['caminhoApiLocal'];
+        $caminhoApiLocal = $this->pegaCaminhoApi();
 
         $dados = is_array($p['dados']) ? $p['dados'] : json_decode($p['dados'], true);
 
@@ -173,10 +173,10 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
             if (isset($arquivosTela)) {
                 if (sizeof($conf['arquivosAnexar']) > 0) { //Neste caso e campo da tela
 
+                    $up = $this->pegaUploadSimples();
+                    $dir = $this->pegaGerenciaDiretorios();
+                    $sessao = $this->pegaManipulaSessao();
 
-                    $up = new \ClasseGeral\UploadSimples();
-                    $dir = new \ClasseGeral\GerenciaDiretorios();
-                    $sessao = new \ClasseGeral\ManipulaSessao();
                     $raiz = $sessao->pegar('caminhoApiLocal');
 
                     $arqConf = $this->agruparArray($conf['arquivosAnexar'], 'campo');
@@ -185,7 +185,6 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
                         if (isset($a[$arq['campo']])) { //Vendo se existe o $_Files
 //                            //Se tem destino nos atributos da imagem salvo no destino estipulado, senao em arquivos anexos
                             $caminhoBase = isset($arq['destino']) && $arq['destino'] != '' ? $arq['destino'] . '/' : 'arquivos_anexos/' . strtolower($tabela) . '/';
-
 
 //                            //Vendo se e para criar um diretorio com a chave ou salvar direto no destino
                             $caminhoBase .= isset($arq['salvarEmDiretorio']) && $arq['salvarEmDiretorio'] == 'true' ? $chave . '/' : '';
@@ -365,7 +364,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
         if (is_file($caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php')) {
             require_once $caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php';
-            $config = new ('\\configuracoesTabelas')();
+            $config = $this->pegaConfiguracoesTabelas();
             $tabela = strtolower($tabela);
 
             if (method_exists($config, $tabela)) {
@@ -409,7 +408,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
     public
     function verificaRelacionamentos($parametros): void
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
+        $tabInfo = $this->pegaTabelasInfo();
 
         $dados = is_array($parametros['dados']) ? $parametros['dados'] : json_decode($parametros['dados'], true);
         $confi = is_array($parametros['configuracoes']) ? $parametros['configuracoes'] : json_decode($parametros['configuracoes'], true);
@@ -452,8 +451,8 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
      */
     public function inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
-        $formata = new \ClasseGeral\Formatacoes();
+        $tabInfo = $this->pegaTabelasInfo();
+        $formata = $this->pegaFormatacoes();
 
         $nova_chave = 0;
 
@@ -649,7 +648,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         $camposIgnorar = [];
         $camposObrigatorios = $configuracao['camposObrigatorios'];
 
-        $compara = new \ClasseGeral\ManipulaValores();
+        $compara = $this->pegaManipulaValores();
 
         if (isset($camposObrigatorios['ignorarObrigatorio'])) {
             $camposIgnorar = $camposObrigatorios['ignorarObrigatorio'];
@@ -795,8 +794,8 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
      */
     public function buscarDuplicidadeCadastro(array $configuracoes, array $dados): bool
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
-        $formata = new \ClasseGeral\Formatacoes();
+        $tabInfo = $this->pegaTabelasInfo();
+        $formata = $this->pegaFormatacoes();
 
         $camposSeparados = $configuracoes['camposNaoDuplicar'] ?? [];
         $camposJuntos = $configuracoes['camposNaoDuplicarJuntos'] ?? [];
@@ -870,8 +869,8 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
      */
     public function altera(string $tabela, array $dados, null|int $chave = 0, bool $mostrarsql = false, bool $inserirLog = true): mixed
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
-        $formata = new \ClasseGeral\Formatacoes();
+        $tabInfo = $this->pegaTabelasInfo();
+        $formata = $this->pegaFormatacoes();
 
         //Pegando os campos da tabela
         $tabelaOriginal = $tabela;
@@ -965,8 +964,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
      */
     public function excluir(array|string $parametros): bool|string
     {
-        $tbInfo = new \ClasseGeral\TabelasInfo();
-
+        $tbInfo = $this->pegaTabelasInfo();
 
         $p = $parametros;
         $configTb = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
@@ -1044,10 +1042,9 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
         $novaConsulta = [];
         if ($refazerConsulta) {
-            if ($nova_chave > 0) {
-                $consulta = new \ClasseGeral\ConsultaDados();
-                $novaConsulta = $consulta->consulta($_SESSION[session_id()]['consultas'][$nomeMenuPermissoes]['parametrosConsulta'], 'array');
-            }
+            if ($nova_chave > 0)
+                $novaConsulta = $this->pegaConsultaDados()->consulta($_SESSION[session_id()]['consultas'][$nomeMenuPermissoes]['parametrosConsulta'], 'array');
+
         }
 
         return json_encode([
@@ -1109,10 +1106,9 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
             if ($tabela_relacionada != 'nenhuma') {
                 //Rotina para ver se o registro possui imagens se sim excluo-as
-                $caminho = $this->caminhopastausada() . 'imagens/' . strtolower($tabela) . '/' . $chave . '/';
+                $caminho = $this->pegaCaminhoApi() . 'imagens/' . strtolower($tabela) . '/' . $chave . '/';
                 if (is_dir($caminho)) {
-                    require_once '../funcoes.class.php';
-                    $dir = new gerenciaDiretorios();
+                    $dir = $this->pegaClasseCache('GerenciaDiretorios');
                     $dir->apagadiretorio($caminho);
                 }
             }

@@ -177,7 +177,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
 
         foreach ($camposOrigem as $campo => $config) {
             // Se existe o mesmo campo em campos, concatena as configurações
-            if (isset($camposDestino[$campo])) {
+            if (isset($camposDestino[$campo]) && is_array($camposDestino[$campo])) {
                 $camposConcatenados[$campo] = array_merge($camposDestino[$campo], $config);
             } else {
                 // Se não existe, mantém apenas a configuração original

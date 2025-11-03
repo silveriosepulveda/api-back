@@ -16,7 +16,7 @@ class Combinacoes
      * @param string $separador Caracter que separara os valores nas combinacoes de retorno
      * @return array Variavel que retornara um array com as combinacoes
      */
-    public function combinacoesPossiveis($array, $separador = '-')
+    public function combinacoesPossiveis(array $array, string $separador = '-'): array
     {
         $retorno = array();
         $tam = sizeof($array);
@@ -34,7 +34,7 @@ class Combinacoes
      * @param int $size Tamanho das permutações.
      * @return array Permutações possíveis.
      */
-    public static function getPermutations($array, $size)
+    public static function getPermutations(array $array, int $size): array
     {
         if ($size === 1) {
             $result = [];

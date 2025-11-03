@@ -17,7 +17,7 @@ class ManipulaValores
      * @param bool $bolPalavraFeminina Se deve usar palavras no feminino
      * @return string Valor por extenso
      */
-    public function valorPorExtenso($valor = 0, $bolExibirMoeda = true, $bolPalavraFeminina = false)
+    public function valorPorExtenso(float|int $valor = 0, bool $bolExibirMoeda = true, bool $bolPalavraFeminina = false): string
     {
         $singular = null;
         $plural = null;
@@ -100,30 +100,16 @@ class ManipulaValores
      * @param float|int $valor2 Segundo valor a ser comparado
      * @return bool Resultado da comparação
      */
-    public function compararValor($valor1, $operador, $valor2)
+    public function compararValor(mixed $valor1, string $operador, mixed $valor2): bool
     {
-        switch ($operador) {
-            case '<':
-                return $valor1 < $valor2;
-                break;
-            case '<=':
-                return $valor1 <= $valor2;
-                break;
-            case '>':
-                return $valor1 > $valor2;
-                break;
-            case '>=':
-                return $valor1 >= $valor2;
-                break;
-            case '=':
-                return $valor1 == $valor2;
-                break;
-            case '!=':
-                return $valor1 != $valor2;
-                break;
-            default:
-                return false;
-        }
-        return false;
+        return match ($operador) {
+            '<' => $valor1 < $valor2,
+            '<=' => $valor1 <= $valor2,
+            '>' => $valor1 > $valor2,
+            '>=' => $valor1 >= $valor2,
+            '=' => $valor1 == $valor2,
+            '!=' => $valor1 != $valor2,
+            default => false,
+        };
     } // ...existing code from Funcoes.php...
 }

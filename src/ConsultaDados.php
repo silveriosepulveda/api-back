@@ -40,8 +40,8 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
     public function retornosqldireto( string|array $sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true): array
     {
         $retorno = [];
-        $tabInfo = new \ClasseGeral\TabelasInfo();
-        $formata = new \ClasseGeral\Formatacoes();
+        $tabInfo = $this->pegaTabelasInfo();// new \ClasseGeral\TabelasInfo();
+        $formata = $this->pegaFormatacoes(); // new \ClasseGeral\Formatacoes();
 
         $dataBase = $this->pegaDataBase($tabela, $dataBase);
 
@@ -108,17 +108,16 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
 
         $tabela = $p['tabela'];
         $tabelaConsulta = $p['tabelaConsulta'] ?? $tabela;
-        $infoTab = new \ClasseGeral\TabelasInfo();
+        $infoTab = $this->pegaTabelasInfo();
+
         $configuracoesTabela = $infoTab->buscaConfiguracoesTabela($tabelaConsulta);
         $tabelaConsulta = $configuracoesTabela['tabelaConsulta'] ?? $tabelaConsulta;
-
-        //$tabela = $configuracoesTabela['tabelaOrigem'] ?? $tabela;
 
         $p['campo_chave'] = $p['campo_chave'] ?? strtolower($infoTab->campochavetabela($p['tabela']));
 
         $temCampoDisponivelNoFiltro = false;
 
-        $sessao = new \ClasseGeral\ManipulaSessao();
+        $sessao = $this->pegaManipulaSessao();
 
         $valoresConsiderarDisponivel = array_merge(['S'], $configuracoesTabela['valoresConsiderarDisponivel'] ?? []);
 
@@ -336,7 +335,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
 
     private function resumoConsulta($parametros, $campos_tabela = array())
     {
-        $formata = new \ClasseGeral\Formatacoes();
+        $formata = $this->pegaFormatacoes();
 
         $p = $parametros;
         $limite = isset($p['limite']) && $p['limite'] > 0 ? $p['limite'] : 0;
@@ -374,8 +373,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
         }
         $temp = $this->retornosqldireto(strtolower($sql), '', $p['tabela']);
 
-        $resumo = $this->retornosqldireto(strtolower($sql), '', $p['tabela'])[0];
-        return $resumo;
+        return $this->retornosqldireto(strtolower($sql), '', $p['tabela'])[0];
     }
 
     /**
@@ -394,7 +392,6 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
     public function selecionarItemConsulta(array $parametros): string
     {
         $tela = $parametros['tela'];
-        $key = $parametros['key'];
         $selecionado = $parametros['selecionado'];
 
         // Percorre a lista de itens da consulta e marca/desmarca conforme o parâmetro
@@ -424,7 +421,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
         $tela = $parametros['tela'];
         $selecionado = $parametros['selecionado'];
 
-        $sessao = new \ClasseGeral\ManipulaSessao();
+        $sessao = $this->pegaManipulaSessao();
         $variavelSessao = 'consultas,' . $tela;
         $lista = $sessao->pegar($variavelSessao);
 

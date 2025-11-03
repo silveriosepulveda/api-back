@@ -108,8 +108,8 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
             $valor = $valor != null ? $valor : '';
             $valor = "'" . trim(str_replace("'", "\'", $valor), '"') . "'";
         } else if ($tipo == 'longtext' || $tipo == 'text') {
-            if ($valor != 'undefined') {
-                $valor = stripslashes($valor);
+            if ($valor != 'undefined' && $valor !== null) {
+                $valor = stripslashes((string)$valor);
                 //Fazendo esta linha para salvar as ' dentro de '
                 $valor = str_replace("'", "\'", $valor);
                 $valor = "'" . $valor . "'";

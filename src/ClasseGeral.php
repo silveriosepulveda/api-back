@@ -35,8 +35,7 @@ class ClasseGeral extends ConClasseGeral
     }
 
     public function consulta($parametros, $tipoRetorno = 'json'){
-        $con = new \ClasseGeral\ConsultaDados();
-        return $con->consulta($parametros, $tipoRetorno);
+        return $this->pegaConsultaDados()->consulta($parametros, $tipoRetorno);
     }
 
     public function selecionarTodosItensConsulta(array $parametros){
@@ -54,10 +53,6 @@ class ClasseGeral extends ConClasseGeral
         return $con->excluir($parametros);
     }
 
-    public function buscarEstrutura($parametros, $tipoRetorno = 'json'){
-        $con = new \ClasseGeral\Estruturas();
-        return $con->buscarEstrutura($parametros, $tipoRetorno);
-    }
 
     protected function validarPermissaoUsuario($classe, $acao): array | string
     {
@@ -355,7 +350,7 @@ class ClasseGeral extends ConClasseGeral
                     $caminhoArquivo = $caminho . $val['arquivo'];
                 }
 
-                if (is_file( $cam . $caminhoArquivo) && !array_key_exists($caminhoArquivo, $arquivosVerificados)) {
+                if (is_file($caminhoArquivo) && !array_key_exists($caminhoArquivo, $arquivosVerificados)) {
 
                     $arquivosVerificados[$caminhoArquivo] = $caminhoArquivo;
 
@@ -392,11 +387,17 @@ class ClasseGeral extends ConClasseGeral
                     }
                     $arquivos[$key]["grande"] = $val['arquivo'];
                 } else {
-                    //$this->exclui('arquivos_anexos', 'chave_anexo', $val['chave_anexo']);
+                  //  echo 'nao tem';
+                //    $this->exclui('arquivos_anexos', 'chave_anexo', $val['chave_anexo']);
                 }
 
             }
         }
+
+        $temp = $arquivos;
+        $arquivos = [];
+        foreach ($temp as $val)
+            $arquivos[] = $val;
 
         return $tipoRetorno == 'json' ? json_encode($arquivos) : $arquivos;
     }
@@ -501,7 +502,7 @@ class ClasseGeral extends ConClasseGeral
     {
         $p = $parametros;
 
-        $caminho = $_SESSION[session_id()]['caminhoApiLocal'];
+        $caminho = $this->pegaCaminhoApi();// $_SESSION[session_id()]['caminhoApiLocal'];
         $tabela = $this->nometabela($p['tabela']);
 
         ini_set('display_errors', 1);
@@ -523,14 +524,13 @@ class ClasseGeral extends ConClasseGeral
         if (sizeof($arquivos) > 0) {
             $chave = $p['chave'];
 
-            $caminho = $_SESSION[session_id()]['caminhoApiLocal'];
             $destinoBase = 'arquivos_anexos/' . $tabela . '/' . $chave . '/';
             $destino = $caminho . 'arquivos_anexos/' . $tabela . '/' . $chave . '/';
             $destinom = $caminho . 'arquivos_anexos/' . $tabela . '/' . $chave . '/mini/';
 
-            $up = new \ClasseGeral\UploadSimples();
-            $func = new \ClasseGeral\ManipulaStrings();
-            $dir = new \ClasseGeral\GerenciaDiretorios();
+            $up = $this->pegaUploadSimples();
+            $func = $this->pegaManipulaStrings();
+            $dir = $this->pegaGerenciaDiretorios();
 
             if (!is_dir($destino)) {
                 $dir->criadiretorio($destino);
@@ -611,7 +611,7 @@ class ClasseGeral extends ConClasseGeral
 
             if (file_exists($arquivoClasse)) {
                 require_once $arquivoClasse;
-                $classe = new ('\\' . $nomeClase)();
+                $classe = new ('\\' . $nomeClasse)();
                 if (method_exists($classe, 'aoIncluirAnexos')) {
                     $classe->aoIncluirAnexos($p);
                 }
