@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null) {
-       // return json_encode(print_r($error, true));
+        // return json_encode(print_r($error, true));
         echo "<pre>Erro fatal: ";
         print_r($error);
         echo "</pre>";
@@ -32,14 +32,23 @@ use Slim\Factory\AppFactory;
 //use OpenSwoole\WebSocket\Server;
 require __DIR__ . '/vendor/autoload.php';
 
+$caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
+$_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+date_default_timezone_set('America/Sao_Paulo');
+
+
+//$caminhoTemp = explode('/', pathinfo($_SERVER['SCRIPT_FILENAME'])['dirname']);
+//unset($caminhoTemp[sizeof($caminhoTemp) - 1]);
+//$caminho = join('/', $caminhoTemp) . '/';
+$configuracoesAPIs = [];
+if (is_file($caminho . 'api/backLocal/configuracoesAPIs.php')) {
+    require_once $caminho . 'api/backLocal/configuracoesAPIs.php';
+}
+
 $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
-$app->add(function (Request $request, $handler) {
-    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
-    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
-    date_default_timezone_set('America/Sao_Paulo');
-
+$app->add(middleware: function (Request $request, $handler) {
     if ($request->getMethod() === 'OPTIONS') {
         $response = new \Slim\Psr7\Response();
         return $response
@@ -62,7 +71,7 @@ $app->add(function (Request $request, $handler) {
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
-    $sessionId = $request->getHeaderLine('x-session-id');
+    $sessionId = 'knqo9lckde16osjad116f8r2if';// $request->getHeaderLine('x-session-id');
 
     if ($sessionId) {
         session_id($sessionId);
@@ -109,15 +118,15 @@ function continuar(): bool
 }
 
 //Configuracao nova, para o caso de haverem mais de uma API, para o mesmo sistema
-$configuracoesAPIs = [];
+//$configuracoesAPIs = [];
 
-$caminhoTemp = explode('/', pathinfo($_SERVER['SCRIPT_FILENAME'])['dirname']);
-unset($caminhoTemp[sizeof($caminhoTemp) - 1]);
-$caminho = join('/', $caminhoTemp) . '/';
+//$caminhoTemp = explode('/', pathinfo($_SERVER['SCRIPT_FILENAME'])['dirname']);
+//unset($caminhoTemp[sizeof($caminhoTemp) - 1]);
+//$caminho = join('/', $caminhoTemp) . '/';
 
-if (is_file($caminho . 'backLocal/configuracoesAPIs.php')) {
-    require_once $caminho . 'backLocal/configuracoesAPIs.php';
-}
+//if (is_file($caminho . 'backLocal/configuracoesAPIs.php')) {
+//    require_once $caminho . 'backLocal/configuracoesAPIs.php';
+//}
 
 ini_set('display_errors', 1);
 
@@ -136,15 +145,15 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
     global $caminho;
 
     if (in_array($API, array_keys($configuracoesAPIs))) {
-        @session_start();
-        $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+        //  @session_start();
+        //  $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 
         if (substr($parametros, 0, 1) == '{') {
             $p = descriptografaarray(json_decode($parametros, true));
             $parametros = $p;
         }
 
-        $arquivo = $caminho . 'backLocal/' . $configuracoesAPIs[$API]['arquivo'];
+        $arquivo = $caminho . 'api/backLocal/' . $configuracoesAPIs[$API]['arquivo'];
 
         require_once $arquivo;
         $classe = new $tabela();
@@ -265,8 +274,8 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
 //Anexar Arquivos
 $app->post('/anexarArquivos', function (Request $request, Response $response, $argumentos) {
     continuar();
-    $cam =  $_SESSION[session_id()]['caminhoApiLocal'];
-    if (is_file( $cam . 'api/backLocal/classes/classeGeralLocal.class.php')) {
+    $cam = $_SESSION[session_id()]['caminhoApiLocal'];
+    if (is_file($cam . 'api/backLocal/classes/classeGeralLocal.class.php')) {
         require_once $cam . 'api/backLocal/classes/classeGeralLocal.class.php';
         $anexar = new \ClasseGeral\classeGeralLocal();
     } else {

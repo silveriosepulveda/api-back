@@ -14,7 +14,7 @@ $temp = __DIR__;
 require_once __DIR__ . '/ClassesCache.php';
 
 if (isset($_SESSION[session_id()]['caminhoApiLocal'])) {
-    $arq = $_SESSION[session_id()]['caminhoApiLocal'] . '/api/backLocal/classes/dadosConexao.class.php';
+    $arq = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/dadosConexao.class.php';
     if (is_file($arq))
         require_once $arq;
 }
