@@ -71,7 +71,7 @@ $app->add(middleware: function (Request $request, $handler) {
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
-    $sessionId = 'knqo9lckde16osjad116f8r2if';// $request->getHeaderLine('x-session-id');
+    $sessionId = $request->getHeaderLine('x-session-id');
 
     if ($sessionId) {
         session_id($sessionId);
