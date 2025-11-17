@@ -174,7 +174,7 @@ $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Resp
 //        @session_start();
         $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 
-        $arquivo = $caminho . 'backLocal/' . $configuracoesAPIs[$API]['arquivo'];
+        $arquivo = $caminho . 'api/backLocal/' . $configuracoesAPIs[$API]['arquivo'];
 
         require_once $arquivo;
         $classe = new $tabela();
