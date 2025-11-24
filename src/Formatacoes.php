@@ -80,8 +80,20 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
         } else if ($tipo == 'varbinary') {
             $retorno = $valor;
         } else if ($tipo == 'json') {
-            $retorno = json_decode(preg_replace('/(\r\n)|\n|\r/', '\\n', $valor), true);
-            $retorno = gettype($retorno) == 'string' ? json_decode($retorno, true) : $retorno;
+            // Remove aspas duplas externas se existirem (caso o JSON venha como string)
+            $valorLimpo = trim($valor);
+            if (substr($valorLimpo, 0, 1) === '"' && substr($valorLimpo, -1) === '"') {
+                $valorLimpo = substr($valorLimpo, 1, -1);
+                // Remove escape das aspas internas
+                $valorLimpo = stripslashes($valorLimpo);
+            }
+            
+            $retorno = preg_replace('/(\r\n)|\n|\r/', '\\n', $valorLimpo);
+            
+            // Se o retorno ainda for uma string (JSON aninhado), tenta decodificar novamente
+            if (is_string($retorno)) {
+                $retorno = json_decode($retorno, true);
+            }
         } else {
             $retorno = '';
         }

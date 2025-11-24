@@ -1,7 +1,9 @@
 <?php
+
 namespace ClasseGeral;
 
-class ConsultaDados extends \ClasseGeral\ClasseGeral{
+class ConsultaDados extends \ClasseGeral\ClasseGeral
+{
 
     /**
      * Indica se deve mostrar o SQL da consulta.
@@ -25,66 +27,6 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
         'itensPagina' => 25,
         'itensUltimaPagina' => 0,
     );
-
-    /**
-     * Executa uma query SQL diretamente e retorna os resultados processados.
-     *
-     * @param string $sql Query SQL a ser executada.
-     * @param string $acao (Opcional) Ação a ser realizada com os dados retornados.
-     * @param string $tabela (Opcional) Nome da tabela relacionada à query.
-     * @param string $dataBase (Opcional) Nome da base de dados onde a query será executada.
-     * @param bool $mostrarsql (Opcional) Se deve ou não mostrar a query SQL executada.
-     * @param bool $formatar (Opcional) Se deve ou não formatar os valores retornados.
-     * @return array Resultado da query processado.
-     */
-    public function retornosqldireto( string|array $sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true): array
-    {
-        $retorno = [];
-        $tabInfo = $this->pegaTabelasInfo();// new \ClasseGeral\TabelasInfo();
-        $formata = $this->pegaFormatacoes(); // new \ClasseGeral\Formatacoes();
-
-        $dataBase = $this->pegaDataBase($tabela, $dataBase);
-
-        $campos = $tabela != '' ? array_change_key_case($tabInfo->campostabela($tabela), CASE_LOWER) : '';
-
-        if ($acao == 'montar') {
-            $sql = $this->montasql($sql);
-        }
-
-        if ($mostrarsql) {
-            echo $sql;
-        }
-
-        $res = $this->executasql($sql, $dataBase);
-
-        $linhasAfetadas = $this->linhasafetadas($dataBase);
-
-        if ($linhasAfetadas == 1) {
-            $lin = $this->retornosql($res);
-            $retorno[] = array_change_key_case($lin, CASE_LOWER);
-        } else if ($linhasAfetadas > 1) {
-            while ($lin = $this->retornosql($res)) {
-                $retorno[] = array_change_key_case($lin, CASE_LOWER);
-            }
-        }
-
-        if ($campos != '') {
-            foreach ($retorno as $key => $val) {
-                foreach ($val as $campo => $valor) {
-                    if ((isset($campos[$campo]['tipo']) && $campos[$campo]['tipoConsulta'] != '') || isset($campos[$campo]['tipoConsulta'])) {
-
-                        $tipo = isset($campos[$campo]['tipoConsulta']) && $campos[$campo]['tipoConsulta'] != '' ? $campos[$campo]['tipoConsulta'] : $campos[$campo]['tipo'];
-
-                        $retorno[$key][$campo] = $formatar ? $formata->formatavalorexibir($valor, $tipo, false) : $valor;
-                    }
-                }
-            }
-        }
-
-        $this->desconecta($dataBase);
-        return $retorno;
-    }
-
 
     /**
      * Realiza uma consulta na tabela especificada nos parâmetros.
@@ -374,6 +316,64 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral{
         $temp = $this->retornosqldireto(strtolower($sql), '', $p['tabela']);
 
         return $this->retornosqldireto(strtolower($sql), '', $p['tabela'])[0];
+    }
+
+    /**
+     * Executa uma query SQL diretamente e retorna os resultados processados.
+     *
+     * @param string $sql Query SQL a ser executada.
+     * @param string $acao (Opcional) Ação a ser realizada com os dados retornados.
+     * @param string $tabela (Opcional) Nome da tabela relacionada à query.
+     * @param string $dataBase (Opcional) Nome da base de dados onde a query será executada.
+     * @param bool $mostrarsql (Opcional) Se deve ou não mostrar a query SQL executada.
+     * @param bool $formatar (Opcional) Se deve ou não formatar os valores retornados.
+     * @return array Resultado da query processado.
+     */
+    public function retornosqldireto(string|array $sql, $acao = '', $tabela = '', $dataBase = '', $mostrarsql = false, $formatar = true): array
+    {
+        $retorno = [];
+        $tabInfo = $this->pegaTabelasInfo();// new \ClasseGeral\TabelasInfo();
+        $formata = $this->pegaFormatacoes(); // new \ClasseGeral\Formatacoes();
+
+        $dataBase = $this->pegaDataBase($tabela, $dataBase);
+
+        $campos = $tabela != '' ? array_change_key_case($tabInfo->campostabela($tabela), CASE_LOWER) : '';
+
+        if ($acao == 'montar') {
+            $sql = $this->montasql($sql);
+        }
+
+        if ($mostrarsql) {
+            echo $sql;
+        }
+
+        $res = $this->executasql($sql, $dataBase);
+
+        $linhasAfetadas = $this->linhasafetadas($dataBase);
+
+        if ($linhasAfetadas == 1) {
+            $lin = $this->retornosql($res);
+            $retorno[] = array_change_key_case($lin, CASE_LOWER);
+        } else if ($linhasAfetadas > 1) {
+            while ($lin = $this->retornosql($res)) {
+                $retorno[] = array_change_key_case($lin, CASE_LOWER);
+            }
+        }
+
+        if ($campos != '') {
+            foreach ($retorno as $key => $val) {
+                foreach ($val as $campo => $valor) {
+                    if ((isset($campos[$campo]['tipo']) && $campos[$campo]['tipoConsulta'] != '') || isset($campos[$campo]['tipoConsulta'])) {
+                        $tipo = isset($campos[$campo]['tipoConsulta']) && $campos[$campo]['tipoConsulta'] != '' ? $campos[$campo]['tipoConsulta'] : $campos[$campo]['tipo'];
+                        $valor = $formatar ? $formata->formatavalorexibir($valor, $tipo, false) : $valor;
+                        $retorno[$key][$campo] = $valor;
+                    }
+                }
+            }
+        }
+
+        $this->desconecta($dataBase);
+        return $retorno;
     }
 
     /**

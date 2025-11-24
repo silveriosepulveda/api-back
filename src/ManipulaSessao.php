@@ -40,7 +40,10 @@ class ManipulaSessao
      */
     public function pegar($var)
     {
-       // @session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         $temp = $_SESSION;
         $id = session_id();
         $c = explode(',', $var);

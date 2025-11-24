@@ -33,7 +33,6 @@ use Slim\Factory\AppFactory;
 require __DIR__ . '/vendor/autoload.php';
 
 $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
-$_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 date_default_timezone_set('America/Sao_Paulo');
 
 
@@ -145,8 +144,7 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
     global $caminho;
 
     if (in_array($API, array_keys($configuracoesAPIs))) {
-        //  @session_start();
-        //  $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+        $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
 
         if (substr($parametros, 0, 1) == '{') {
             $p = descriptografaarray(json_decode($parametros, true));
@@ -160,7 +158,7 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
         $response->getBody()->write($classe->$funcaoExecutar($parametros));
         return $response;
     }
-});
+})->add($authMiddleware);
 
 $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Response $response, $args) {
     $API = $args['API'];
@@ -189,7 +187,7 @@ $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Resp
         $response->getBody()->write($retorno);
     }
     return $response;
-});
+})->add($authMiddleware);
 
 $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $argumentos) {
     $tabela = $argumentos['tabela'];

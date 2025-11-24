@@ -7,15 +7,15 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 class Emails extends \ClasseGeral\ClasseGeral {
 
-    private string $emailOrigem = 'naoresponda@theplayeron.com.br';
-    private string $senhaOrigem = 'dvDezHX,L^pj#Rd?';
+    //private string $emailOrigem = 'naoresponda@theplayeron.com.br';
+    //private string $senhaOrigem = 'dvDezHX,L^pj#Rd?';
 
     public function enviarEmail($parametros, string $tipoRetorno = 'json'): string|array
     {
         $retorno = ['sucesso' => false];
 
         $p = $parametros;
-        $destinatario = $this->antiInjection($p['destinatario']);
+        //$destinatario = $this->antiInjection($p['destinatario']);
         $assunto = $this->antiInjection($p['assunto']);
         $mensagem = $this->antiInjection($p['mensagem']);
         
@@ -42,12 +42,12 @@ class Emails extends \ClasseGeral\ClasseGeral {
             
             // Configurações do servidor SMTP próprio (cPanel/WHM)
             $mail->isSMTP();
-            $mail->Host = 'mail.theplayeron.com.br'; // Servidor SMTP local do cPanel/WHM
+            $mail->Host = $this->dadosEmailEnvio['servidor']; // Servidor SMTP local do cPanel/WHM
             $mail->SMTPAuth = true;
-            $mail->Username = $this->emailOrigem; // Email completo usado no cPanel
-            $mail->Password = $this->senhaOrigem; // Senha do email configurada no cPanel
+            $mail->Username = $this->dadosEmailEnvio['email']; // Email completo usado no cPanel
+            $mail->Password = $this->dadosEmailEnvio['senha']; // Senha do email configurada no cPanel
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL direto para porta 465
-            $mail->Port = 465; // Porta padrão do cPanel para SMTP com SSL
+            $mail->Port = $this->dadosEmailEnvio['porta']; // Porta padrão do cPanel para SMTP com SSL
             $mail->CharSet = 'UTF-8';
             $mail->setLanguage('pt_br');
             $mail->SMTPOptions = array(
@@ -59,10 +59,14 @@ class Emails extends \ClasseGeral\ClasseGeral {
             );
             
             // Remetente
-            $mail->setFrom($this->emailOrigem);
+            $mail->setFrom($this->dadosEmailEnvio['email']);
             
             // Destinatário
-            $mail->addAddress($destinatario);
+            if (is_array($p['destinatarios'])) {
+                foreach ($p['destinatarios'] as $dest)
+                    $mail->addAddress($dest);
+            }else
+                $mail->addAddress($p['destinatarios']);
             
             // Conteúdo do email
             $mail->isHTML(true);
