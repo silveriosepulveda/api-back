@@ -134,6 +134,44 @@ function validaApi($apiKey)
     return $apiKey == 'apiKey';
 }
 
+//Temporario tirar apos corrigir o App
+$app->get('/centralCriadores/site/{funcao_executar}/{parametros}', function (Request $request, Response $response, $args) {
+    $API = 'centralCriadores';
+    $tabela = 'site';
+    $funcaoExecutar = $args['funcao_executar'];
+    $parametros = descriptografaarray(json_decode($args['parametros'], true));
+    global $caminho;
+
+    $arquivo = $caminho . 'api/backLocal/apiSite.class.php';
+
+    require_once $arquivo;
+    $classe = new $tabela();
+    $response->getBody()->write($classe->$funcaoExecutar($parametros));
+    return $response;
+})->add($authMiddleware);
+
+$app->post('/centralCriadores/site/{funcao_executar}', function (Request $request, Response $response, $args) {
+    $API = 'centralCriadores';
+    $tabela = 'site';
+    $funcaoExecutar = $args['funcao_executar'];
+    global $caminho;
+
+    $arquivo = $caminho . 'api/backLocal/apiSite.class.php';
+
+    require_once $arquivo;
+    $classe = new $tabela();
+    $parametros = [];
+    if (isset($_POST['parametros']))
+        $parametros = $_POST['parametros'];
+    else if (isset($_POST))
+        $parametros = $_POST;
+
+    $retorno = $classe->$funcaoExecutar($parametros);
+    $response->getBody()->write($retorno);
+
+    return $response;
+})->add($authMiddleware);
+
 $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $args) {
     $API = $args['API'];
     $tabela = $args['tabela'];
@@ -153,6 +191,7 @@ $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $r
 
         $arquivo = $caminho . 'api/backLocal/' . $configuracoesAPIs[$API]['arquivo'];
 
+        //echo $arquivo . ' -- ' . $tabela . ' -- ' ;
         require_once $arquivo;
         $classe = new $tabela();
         $response->getBody()->write($classe->$funcaoExecutar($parametros));

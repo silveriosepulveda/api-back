@@ -1726,7 +1726,15 @@ class ConClasseGeral extends dadosConexao
      */
     public function antiInjection($texto)
     {
-        $retorno = preg_replace("/( from | alter table | select | insert | delete | update | where | drop table | show tables |\*|--|\\\\)/i", "", $texto);
+        if (!is_string($texto)) {
+            $texto = (string)$texto;
+        }
+        // Padrão regex para remover comandos SQL perigosos e caracteres especiais
+        $padrao = '/( from | alter table | select | insert | delete | update | where | drop table | show tables |\*|--|\\\\)/i';
+        $retorno = preg_replace($padrao, '', $texto);
+        if ($retorno === null) {
+            $retorno = $texto;
+        }
 
         $retorno = trim($retorno);
         $retorno = strip_tags($retorno);
