@@ -989,4 +989,33 @@ class ClasseGeral extends ConClasseGeral
         return isset($retorno[0][$p['campo_chave']]) ? $retorno[0][$p['campo_chave']] : 'erro';
         $this->desconecta($dataBase);
     }
+
+    public
+    function valorExiste($parametros)
+    {
+        $p = $parametros;
+        //print_r($parametros);
+
+        $campos_tabela = $this->pegaTabelasInfo()->campostabela($p['tabela']);
+        $s['tabela'] = $p['tabela'];
+        $s['campos'] = isset($p['retornar_completo']) && $p['retornar_completo'] ? array_keys($campos_tabela) : array($p['campo']);
+
+        if (isset($p['campo_valor'])) {
+            $s['campos'][] = $p['campo_valor'];
+        }
+
+        if (isset($p['chave']) && $p['chave'] > 0) {
+            $s['comparacao'][] = array('int', $p['campo_chave'], '!=', $p['chave']);
+        }
+        $s['comparacao'][] = array('varchar', $p['campo'], '=', $p['valor']);
+
+        if (isset($campos_tabela['disponivel'])) {
+            $s['comparacao'][] = array('varchar', 'disponivel', '!=', 'E');
+        } elseif (isset($campos_tabela['arquivado'])) {
+            $s['comparacao'][] = array('varchar', 'arquivado', '!=', 'E');
+        }
+
+        return json_encode($this->retornosqldireto($s, 'montar', $p['tabela'], false, false));
+
+    }
 }

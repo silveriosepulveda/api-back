@@ -17,8 +17,7 @@ if (isset($_SESSION[session_id()]['caminhoApiLocal'])) {
     $arq = $_SESSION[session_id()]['caminhoApiLocal'] . 'api/backLocal/classes/dadosConexao.class.php';
     if (is_file($arq))
         require_once $arq;
-}
-else
+} else
     include $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php';
 
 
@@ -71,123 +70,11 @@ class ConClasseGeral extends dadosConexao
      */
     private ?ClassesCache $classesCache = null;
 
-    /**
-     * Garante que o cache de classes está inicializado
-     * @return ClassesCache
-     */
-    private function pegaClassesCache(): ClassesCache
-    {
-        if ($this->classesCache === null) {
-            $this->classesCache = new ClassesCache();
-        }
-        return $this->classesCache;
-    }
-
     public function __construct()
     {
         parent::__construct();
         $teste = $this->bases;
         $this->classesCache = new ClassesCache();
-    }
-
-    /**
-     * Retorna uma instância cached da classe ConsultaDados
-     * @return ConsultaDados
-     */
-    protected function pegaConsultaDados(): ConsultaDados
-    {
-        return $this->pegaClassesCache()->pegaConsultaDados();
-    }
-
-    /**
-     * Retorna uma instância cached da classe ManipulaDados
-     * @return ManipulaDados
-     */
-    protected function pegaManipulaDados(): ManipulaDados
-    {
-        return $this->pegaClassesCache()->pegaManipulaDados();
-    }
-
-    /**
-     * Retorna uma instância cached da classe TabelasInfo
-     * @return TabelasInfo
-     */
-    protected function pegaTabelasInfo(): TabelasInfo
-    {
-        return $this->pegaClassesCache()->pegaTabelasInfo();
-    }
-
-    /**
-     * Retorna uma instância cached da classe Formatacoes
-     * @return Formatacoes
-     */
-    protected function pegaFormatacoes(): Formatacoes
-    {
-        return $this->pegaClassesCache()->pegaFormatacoes();
-    }
-
-    /**
-     * Retorna uma instância cached da classe ManipulaSessao
-     * @return ManipulaSessao
-     */
-    protected function pegaManipulaSessao(): ManipulaSessao
-    {
-        return $this->pegaClassesCache()->pegaManipulaSessao();
-    }
-
-    /**
-     * Retorna uma instância cached da classe ManipulaValores
-     * @return ManipulaValores
-     */
-    protected function pegaManipulaValores(): ManipulaValores
-    {
-        return $this->pegaClassesCache()->pegaManipulaValores();
-    }
-
-    /**
-     * Retorna uma instância cached de UploadSimples
-     * @return UploadSimples
-     */
-    protected function pegaUploadSimples(): UploadSimples
-    {
-        return $this->pegaClassesCache()->pegaUploadSimples();
-    }
-
-    /**
-     * Retorna uma instância cached de GerenciaDiretorios
-     * @return GerenciaDiretorios
-     */
-    protected function pegaGerenciaDiretorios(): GerenciaDiretorios
-    {
-        return $this->pegaClassesCache()->pegaGerenciaDiretorios();
-    }
-
-    /**
-     * Retorna uma instância cached de ManipulaStrings
-     * @return ManipulaStrings
-     */
-    protected function pegaManipulaStrings(): ManipulaStrings
-    {
-        return $this->pegaClassesCache()->pegaManipulaStrings();
-    }
-
-    /**
-     * Retorna uma instância cached de configuracoesTabelas
-     * @return mixed
-     */
-    protected function pegaConfiguracoesTabelas(): mixed
-    {
-        return $this->pegaClasseCache('configuracoesTabelas');
-    }
-
-    /**
-     * Método genérico para cache de instâncias por nome de classe
-     * @param string $className Nome da classe
-     * @return mixed Instância da classe
-     */
-    protected function pegaClasseCache(string $className): mixed
-    {
-        return $this->pegaClassesCache()->pegaClasseCache($className);
     }
 
     /**
@@ -273,6 +160,20 @@ class ConClasseGeral extends dadosConexao
             $retorno .= $temDi ? " AND $campo <= $df" : " <= $df";
         }
         return $retorno;
+    }
+
+    public function retornavalorparasql(string $tipo, mixed $valor, string $origem = 'consulta', string $campo = ''): mixed
+    {
+        return $this->pegaFormatacoes()->retornavalorparasql($tipo, $valor, $origem, $campo);
+    }
+
+    /**
+     * Retorna uma instância cached da classe Formatacoes
+     * @return Formatacoes
+     */
+    protected function pegaFormatacoes(): Formatacoes
+    {
+        return $this->pegaClassesCache()->pegaFormatacoes();
     }
 
     /**
@@ -435,38 +336,15 @@ class ConClasseGeral extends dadosConexao
         return $this->pegaTabelasInfo()->buscaConfiguracoesTabela($tabela, $tipoTabela);
     }
 
-    public function inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed {
-        return $this->pegaManipulaDados()->inclui($tabela, $dados, $chave_primaria, $mostrarsql, $inserirLog, $formatar);
-    }
-
-    public function validarCamposObrigatorios(array $configuracao, array $dados, array $retorno = []): array{
-        return $this->pegaManipulaDados()->validarCamposObrigatorios($configuracao, $dados, $retorno);
-    }
-
-    public function buscarDuplicidadeCadastro(array $configuracoes, array $dados): bool{
-        return $this->pegaManipulaDados()->buscarDuplicidadeCadastro($configuracoes, $dados);
-    }
-
-    public function exclui(string $tabela, string $campo_chave, string $chave, string $tabela_relacionada = 'nenhuma', bool $exibirsql= false): bool|string
+    /**
+     * Retorna uma instância cached da classe TabelasInfo
+     * @return TabelasInfo
+     */
+    protected function pegaTabelasInfo(): TabelasInfo
     {
-        $parametros = [
-            'tabela' => $tabela,
-            'campo_chave' => $campo_chave,
-            'chave' => $chave,
-            'exibirsql' => $exibirsql
-        ];
-        $retorno = json_decode($this->pegaManipulaDados()->excluir($parametros), true);
-        return json_encode(['chave' => $retorno['chave']]);
+        return $this->pegaClassesCache()->pegaTabelasInfo();
     }
 
-    public function buscarEstrutura($parametros, $tipoRetorno = 'json'): bool|array|string
-    {
-        return $this->pegaClassesCache()->pegaEstruturas()->buscarEstrutura($parametros, $tipoRetorno);
-    }
-
-    public function altera(string $tabela, array $dados, null|int $chave = 0, bool $mostrarsql = false, bool $inserirLog = true): mixed{
-        return $this->pegaManipulaDados()->altera($tabela, $dados, $chave, $mostrarsql, $inserirLog);
-    }
     /**
      * Retorna o próximo registro de um resultado de query.
      *
@@ -484,6 +362,52 @@ class ConClasseGeral extends dadosConexao
         } else if ($TipoBase === 'SQLite') {
             return $resultado->fetchArray(SQLITE3_ASSOC);
         }
+    }
+
+    public function inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed
+    {
+        return $this->pegaManipulaDados()->inclui($tabela, $dados, $chave_primaria, $mostrarsql, $inserirLog, $formatar);
+    }
+
+    /**
+     * Retorna uma instância cached da classe ManipulaDados
+     * @return ManipulaDados
+     */
+    protected function pegaManipulaDados(): ManipulaDados
+    {
+        return $this->pegaClassesCache()->pegaManipulaDados();
+    }
+
+    public function validarCamposObrigatorios(array $configuracao, array $dados, array $retorno = []): array
+    {
+        return $this->pegaManipulaDados()->validarCamposObrigatorios($configuracao, $dados, $retorno);
+    }
+
+    public function buscarDuplicidadeCadastro(array $configuracoes, array $dados): bool
+    {
+        return $this->pegaManipulaDados()->buscarDuplicidadeCadastro($configuracoes, $dados);
+    }
+
+    public function exclui(string $tabela, string $campo_chave, string $chave, string $tabela_relacionada = 'nenhuma', bool $exibirsql = false): bool|string
+    {
+        $parametros = [
+            'tabela' => $tabela,
+            'campo_chave' => $campo_chave,
+            'chave' => $chave,
+            'exibirsql' => $exibirsql
+        ];
+        $retorno = json_decode($this->pegaManipulaDados()->excluir($parametros), true);
+        return json_encode(['chave' => $retorno['chave']]);
+    }
+
+    public function buscarEstrutura($parametros, $tipoRetorno = 'json'): bool|array|string
+    {
+        return $this->pegaClassesCache()->pegaEstruturas()->buscarEstrutura($parametros, $tipoRetorno);
+    }
+
+    public function altera(string $tabela, array $dados, null|int $chave = 0, bool $mostrarsql = false, bool $inserirLog = true): mixed
+    {
+        return $this->pegaManipulaDados()->altera($tabela, $dados, $chave, $mostrarsql, $inserirLog);
     }
 
     /**
@@ -690,8 +614,25 @@ class ConClasseGeral extends dadosConexao
         return $this->pegaConsultaDados()->retornosqldireto($sql, $acao, $tabela, $dataBase, $mostrarsql, $formatar);
     }
 
-    public function retornavalorparasql(string $tipo, mixed $valor, string $origem = 'consulta', string $campo = ''): mixed{
-        return $this->pegaFormatacoes()->retornavalorparasql($tipo, $valor, $origem, $campo);
+    /**
+     * Retorna uma instância cached da classe ConsultaDados
+     * @return ConsultaDados
+     */
+    protected function pegaConsultaDados(): ConsultaDados
+    {
+        return $this->pegaClassesCache()->pegaConsultaDados();
+    }
+
+    /**
+     * Garante que o cache de classes está inicializado
+     * @return ClassesCache
+     */
+    private function pegaClassesCache(): ClassesCache
+    {
+        if ($this->classesCache === null) {
+            $this->classesCache = new ClassesCache();
+        }
+        return $this->classesCache;
     }
 
     /**
@@ -752,26 +693,6 @@ class ConClasseGeral extends dadosConexao
             //return $this->ConexaoBase->data_count($res);
         }
     }
-
-    /**
-     * Retorna o nome das tabelas da base de dados.
-     *
-     * @return array Lista de tabelas da base de dados.
-     */
-    // public function tabelasbase($dataBase ='' )
-    // {
-    //     $array = array();
-    //     $this->conecta();
-    //     $base = $dataBase;
-    //     $sql = 'SHOW TABLES FROM ' . $base;
-    //     $res = $this->executasql($sql);
-    //     while ($lin = $this->retornosql($res)) {
-    //         $tabela = $lin['Tables_in_' . $base];
-    //         $array[] = $tabela;
-    //     }
-    //     $array = json_encode($array);
-    //     echo $array;
-    // }
 
     /**
      * Verifica se um objeto composto existe em uma tabela com base nos parâmetros informados.
@@ -1223,6 +1144,26 @@ class ConClasseGeral extends dadosConexao
     }
 
     /**
+     * Retorna o nome das tabelas da base de dados.
+     *
+     * @return array Lista de tabelas da base de dados.
+     */
+    // public function tabelasbase($dataBase ='' )
+    // {
+    //     $array = array();
+    //     $this->conecta();
+    //     $base = $dataBase;
+    //     $sql = 'SHOW TABLES FROM ' . $base;
+    //     $res = $this->executasql($sql);
+    //     while ($lin = $this->retornosql($res)) {
+    //         $tabela = $lin['Tables_in_' . $base];
+    //         $array[] = $tabela;
+    //     }
+    //     $array = json_encode($array);
+    //     echo $array;
+    // }
+
+    /**
      * Funcao que busca um ou mais campos de uma tabela por sua chave
      * @param string $tabela Tabela que sera buscada
      * @param string|array $campos Campos que serao buscados
@@ -1517,7 +1458,18 @@ class ConClasseGeral extends dadosConexao
 
     public function buscaUsuarioLogado()
     {
+
+        return $_SESSION[session_id()]['usuario'];
         return $this->pegaManipulaSessao()->pegar('usuario');
+    }
+
+    /**
+     * Retorna uma instância cached da classe ManipulaSessao
+     * @return ManipulaSessao
+     */
+    protected function pegaManipulaSessao(): ManipulaSessao
+    {
+        return $this->pegaClassesCache()->pegaManipulaSessao();
     }
 
     /**
@@ -1635,13 +1587,6 @@ class ConClasseGeral extends dadosConexao
         return $this->formatavalorexibir($v1 + $v2, 'float');
     }
 
-    /*
-     * Função que pega um texto separado por um elemento e retorna um array
-     * @param string $separador é o elemento que separa um texto, pode ser ',' '-' ou outro caracter
-     * @param string $texto é o texto a ser convertido, exemplo 1,2,3,4
-     * @return array $retorno é o texto convertido em um array
-     */
-
     /**
      * Realiza a subtração entre dois valores em formato de texto.
      *
@@ -1685,6 +1630,11 @@ class ConClasseGeral extends dadosConexao
         return $this->formatavalorexibir($valor / $divisor, 'float');
     }
 
+    public function camposArrayToString($array, $campo): string
+    {
+        return join(',', array_keys($this->agruparArray($array, $campo)));
+    }
+
     /**
      * Agrupa um array de dados com base em um campo de agrupamento.
      *
@@ -1693,13 +1643,13 @@ class ConClasseGeral extends dadosConexao
      * @param bool $compararQuantidade (Opcional) Se deve ou não comparar a quantidade de itens agrupados.
      * @return array Array agrupado.
      */
-    public function agruparArray($array, $campoAgrupamento, $compararQuantidade = true)
+    public function agruparArray(array $array, string $campoAgrupamento, bool $compararQuantidade = true): array
     {
         $retornoTemp = array();
         foreach ($array as $item) {
             $temValor = isset($item[$campoAgrupamento]) && $item[$campoAgrupamento] != '' && $item[$campoAgrupamento] != null;
             if ($temValor) {
-                if (sizeof($item) == 1 ) {
+                if (sizeof($item) == 1) {
                     $retornoTemp[$item[$campoAgrupamento]] = $item;
                 } else {
                     $retornoTemp[$item[$campoAgrupamento]][] = $item;
@@ -1741,6 +1691,13 @@ class ConClasseGeral extends dadosConexao
         $retorno = (htmlspecialchars($retorno)) ? $retorno : addslashes($retorno);
         return $retorno;
     }
+
+    /*
+     * Função que pega um texto separado por um elemento e retorna um array
+     * @param string $separador é o elemento que separa um texto, pode ser ',' '-' ou outro caracter
+     * @param string $texto é o texto a ser convertido, exemplo 1,2,3,4
+     * @return array $retorno é o texto convertido em um array
+     */
 
     /**
      * Retorna a data e hora atual formatada.
@@ -1795,7 +1752,7 @@ class ConClasseGeral extends dadosConexao
     {
         if (isset($_SESSION[session_id()]['caminhoApiLocal']))
             return $_SESSION[session_id()]['caminhoApiLocal'];
-        else{
+        else {
             $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
             $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
             return $caminho;
@@ -1854,6 +1811,61 @@ class ConClasseGeral extends dadosConexao
     public function pegaChaveAcesso()
     {
         return isset($_SESSION[session_id()]['usuario']['chave_acesso']) ? $_SESSION[session_id()]['usuario']['chave_acesso'] : null;
+    }
+
+    /**
+     * Retorna uma instância cached da classe ManipulaValores
+     * @return ManipulaValores
+     */
+    protected function pegaManipulaValores(): ManipulaValores
+    {
+        return $this->pegaClassesCache()->pegaManipulaValores();
+    }
+
+    /**
+     * Retorna uma instância cached de UploadSimples
+     * @return UploadSimples
+     */
+    protected function pegaUploadSimples(): UploadSimples
+    {
+        return $this->pegaClassesCache()->pegaUploadSimples();
+    }
+
+    /**
+     * Retorna uma instância cached de GerenciaDiretorios
+     * @return GerenciaDiretorios
+     */
+    protected function pegaGerenciaDiretorios(): GerenciaDiretorios
+    {
+        return $this->pegaClassesCache()->pegaGerenciaDiretorios();
+    }
+
+    /**
+     * Retorna uma instância cached de ManipulaStrings
+     * @return ManipulaStrings
+     */
+    protected function pegaManipulaStrings(): ManipulaStrings
+    {
+        return $this->pegaClassesCache()->pegaManipulaStrings();
+    }
+
+    /**
+     * Retorna uma instância cached de configuracoesTabelas
+     * @return mixed
+     */
+    protected function pegaConfiguracoesTabelas(): mixed
+    {
+        return $this->pegaClasseCache('configuracoesTabelas');
+    }
+
+    /**
+     * Método genérico para cache de instâncias por nome de classe
+     * @param string $className Nome da classe
+     * @return mixed Instância da classe
+     */
+    protected function pegaClasseCache(string $className): mixed
+    {
+        return $this->pegaClassesCache()->pegaClasseCache($className);
     }
 
     /**

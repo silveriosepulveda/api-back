@@ -15,7 +15,8 @@
     "slim/psr7": "^1.7",
     "mpdf/mpdf": "^8.2",
     "phpmailer/phpmailer": "^7.0",
-    "mercadopago/dx-php": "^3.8"
+    "mercadopago/dx-php": "^3.8",
+    "guzzlehttp/guzzle": "^7.10"
 
   },
   "autoload": {

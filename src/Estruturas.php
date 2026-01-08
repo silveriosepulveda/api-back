@@ -97,9 +97,9 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      */
     protected function validaEstrutura(array $estrutura): array
     {
-        $ms = new \ClasseGeral\ManipulaSessao();
+        $ms = $this->pegaManipulaSessao();
         $usuario = $this->buscaUsuarioLogado();
-        $adm = $usuario['administrador_sistema'] == 'S';
+        $adm = $usuario['administrador_sistema'] == 'S' ?? false;
 
         // Se for administrador, não precisa validar
         if ($adm) {
