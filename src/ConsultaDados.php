@@ -89,7 +89,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral
                 $temCampoDisponivelNoFiltro = strtolower($campo) == 'disponivel' ? true : $temCampoDisponivelNoFiltro;
 
                 if (array_key_exists($campo, $campos_tabela)) {
-                    if (isset($val['campo_chave']) && (isset($val['chave']))) {
+                    if (isset($val['campo_chave']) && (isset($val['chave'])) && array_key_exists($val['campo_chave'], $campos_tabela) ) {
                         $operadorTemp = in_array($val['operador'], ['=', 'like']) ? '=' : '<>';
                         $s["comparacao"][] = array('inteiro', $val['campo_chave'], $operadorTemp, $val['chave']);
                     } else {
