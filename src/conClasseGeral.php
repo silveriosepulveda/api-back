@@ -1254,6 +1254,22 @@ class ConClasseGeral extends dadosConexao
         //*/
     }
 
+    public function proximaChaveAutoIncremento($tabela) : int{
+        $retorno = 0;
+        $database = $this->pegaDataBase($tabela);
+
+        $sqlBusca = "select auto_increment from information_schema.tables
+                        where table_schema = '$database' and table_name = '$tabela'";
+        $atual = $this->retornosqldireto($sqlBusca, '', 'tb_cobrancas')[0]['auto_increment'];
+
+        $proxima = intval($atual) + 1;
+
+        $sqlAI = "alter table $tabela auto_increment = $proxima";
+        $this->executasql($sqlAI, $database);
+
+        return $atual;
+    }
+
     /**
      * Retorna o maior valor da chave de uma tabela.
      *
