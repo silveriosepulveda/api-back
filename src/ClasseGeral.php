@@ -34,27 +34,31 @@ class ClasseGeral extends ConClasseGeral
         return $retorno;
     }
 
-    public function consulta($parametros, $tipoRetorno = 'json'){
+    public function consulta($parametros, $tipoRetorno = 'json')
+    {
         return $this->pegaConsultaDados()->consulta($parametros, $tipoRetorno);
     }
 
-    public function selecionarTodosItensConsulta(array $parametros){
+    public function selecionarTodosItensConsulta(array $parametros)
+    {
         $con = new \ClasseGeral\ConsultaDados();
         return $con->selecionarTodosItensConsulta($parametros);
     }
 
-    public function selecionarItemConsulta(array $parametros){
+    public function selecionarItemConsulta(array $parametros)
+    {
         $con = new \ClasseGeral\ConsultaDados();
         return $con->selecionarItemConsulta($parametros);
     }
 
-    public function excluir(array $parametros) : bool|string {
+    public function excluir(array $parametros): bool|string
+    {
         $con = new \ClasseGeral\ManipulaDados();
         return $con->excluir($parametros);
     }
 
 
-    protected function validarPermissaoUsuario($classe, $acao): array | string
+    protected function validarPermissaoUsuario($classe, $acao): array|string
     {
         $usuario = $this->buscaUsuarioLogado();
         $temp = $_SESSION[session_id()];
@@ -63,7 +67,7 @@ class ClasseGeral extends ConClasseGeral
         $ms = new \ClasseGeral\ManipulaSessao();
         $menus = $ms->pegar('menu');
 
-        if($adm || isset($menus['acoes'][$classe][$acao]))
+        if ($adm || isset($menus['acoes'][$classe][$acao]))
             return ['sucesso' => 'Permissão Concedida'];
         else
             return ['aviso' => 'Usuário Sem Permissões'];
@@ -98,9 +102,6 @@ class ClasseGeral extends ConClasseGeral
     }
 
 
-
-
-
     /**
      * Busca um registro para alteração com base nos parâmetros fornecidos.
      *
@@ -118,12 +119,12 @@ class ClasseGeral extends ConClasseGeral
         $configTP = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
 
         $classe = $configTP['classe'] ?? $this->nomeClase($p['tabela']);
-        $nomeMenuPermissoes = $configTP['nomeMenuPermissoes']?? $classe;
-
+        $nomeMenuPermissoes = $configTP['nomeMenuPermissoes'] ?? $classe;
         $permissao = $this->validarPermissaoUsuario($nomeMenuPermissoes, 'Alterar');
 
         if (isset($permissao['aviso']))
             return json_encode($permissao);
+
 
         $caminhoApiLocal = $this->pegaCaminhoApi(); // $_SESSION[session_id()]['caminhoApiLocal'];
 
@@ -265,7 +266,7 @@ class ClasseGeral extends ConClasseGeral
         $cam = $this->pegaCaminhoApi();
 
         $classeGeralLocal = $cam . 'api/backLocal/classes/classeGeralLocal.class.php';
-        if (is_file($classeGeralLocal)){
+        if (is_file($classeGeralLocal)) {
             require_once $classeGeralLocal;
             $con = new \ClasseGeral\classeGeralLocal();
             if (method_exists($con, 'buscarAnexos'))
@@ -387,8 +388,8 @@ class ClasseGeral extends ConClasseGeral
                     }
                     $arquivos[$key]["grande"] = $val['arquivo'];
                 } else {
-                  //  echo 'nao tem';
-                //    $this->exclui('arquivos_anexos', 'chave_anexo', $val['chave_anexo']);
+                    //  echo 'nao tem';
+                    //    $this->exclui('arquivos_anexos', 'chave_anexo', $val['chave_anexo']);
                 }
 
             }
@@ -489,12 +490,11 @@ class ClasseGeral extends ConClasseGeral
      * @param array $arquivos Arquivos enviados.
      * Exemplo: [ 'dados' => [...], 'configuracoes' => [...] ], [ 'campoArquivo' => $_FILES['campoArquivo'] ]
      */
-    public function manipula(array $parametros, array $arquivos = []){
+    public function manipula(array $parametros, array $arquivos = [])
+    {
         $con = new \ClasseGeral\ManipulaDados();
         return $con->manipula($parametros, $arquivos);
     }
-
-
 
 
     public
@@ -684,7 +684,6 @@ class ClasseGeral extends ConClasseGeral
             'larguraThumb' => (int)(($novaLargura * $valorProporcionar) * 0.33)
         ];
     }
-
 
 
     /**

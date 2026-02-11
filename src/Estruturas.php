@@ -14,6 +14,10 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
      */
     public function buscarEstrutura($parametros, $tipoRetorno = 'json'): string|array|bool
     {
+        $usuario = $this->buscaUsuarioLogado();
+        if (!is_array($usuario))
+            return json_encode(['erro' => 'Usuário não logado, ou não localizado']);
+
         $parametros = isset($parametros['parametros']) ? json_decode($parametros['parametros'], true) : $parametros;
         $classeEntrada = !is_array($parametros) ? $parametros : $parametros['classe'];
 
@@ -99,6 +103,10 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
     {
         $ms = $this->pegaManipulaSessao();
         $usuario = $this->buscaUsuarioLogado();
+
+        if (!is_array($usuario))
+            return ['erro' => 'Usuário Não logado'];
+
         $adm = $usuario['administrador_sistema'] == 'S' ?? false;
 
         // Se for administrador, não precisa validar

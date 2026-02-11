@@ -1475,7 +1475,7 @@ class ConClasseGeral extends dadosConexao
     public function buscaUsuarioLogado()
     {
 
-        return $_SESSION[session_id()]['usuario'];
+//        return $_SESSION[session_id()]['usuario'];
         return $this->pegaManipulaSessao()->pegar('usuario');
     }
 
