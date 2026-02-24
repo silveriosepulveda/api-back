@@ -52,8 +52,21 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral
         $tabelaConsulta = $p['tabelaConsulta'] ?? $tabela;
         $infoTab = $this->pegaTabelasInfo();
 
+        $classeTabelaNome = $configuracoesTabela['classe'] ?? $this->nomeClase($tabela);
+        $classeTabela = $this->criaClasseTabela($classeTabelaNome);
+        $estrutura = $this->buscarEstrutura($tabela, 'array');
+        if (isset($estrutura['acaoAntesFiltrar'])){
+            $temFuncaoAntesFiltrar = $this->criaFuncaoClasse($classeTabela, $estrutura['acaoAntesFiltrar']);
+            if ($temFuncaoAntesFiltrar) {
+                $nomeAcao = $estrutura['acaoAntesFiltrar'];
+                $classeTabela->$nomeAcao();
+            }
+        }
+
         $configuracoesTabela = $infoTab->buscaConfiguracoesTabela($tabelaConsulta);
         $tabelaConsulta = $configuracoesTabela['tabelaConsulta'] ?? $tabelaConsulta;
+
+
 
         $p['campo_chave'] = $p['campo_chave'] ?? strtolower($infoTab->campochavetabela($p['tabela']));
 
@@ -249,14 +262,19 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral
             }
         }
 
-        $classeTabela = $configuracoesTabela['classe'] ?? $this->nomeClase($tabela);
+//        $classeTabela = $configuracoesTabela['classe'] ?? $this->nomeClase($tabela);
+//        $classeAposFiltrar = $this->criaClasseTabela($classeTabela);
+        //$funcaoAposFiltrar = isset($parametros['acaoAposFiltrar']) && $parametros['acaoAposFiltrar'] != 'undefined' ? $parametros['acaoAposFiltrar'] : 'aposFiltrar';
+        $funcaoAposFiltrar = 'aposFiltrar';
+        if (isset($parametros['acaoAposFiltrar']) && $parametros['acaoAposFiltrar'] != 'undefined')
+            $funcaoAposFiltrar = $parametros['acaoAposFiltrar'];
+        elseif(isset($estrutura['acaoAposFiltrar']))
+            $funcaoAposFiltrar = $estrutura['acaoAposFiltrar'];
 
-        $classeAposFiltrar = $this->criaClasseTabela($classeTabela);
-        $funcaoAposFiltrar = isset($parametros['acaoAposFiltrar']) && $parametros['acaoAposFiltrar'] != 'undefined' ? $parametros['acaoAposFiltrar'] : 'aposFiltrar';
-        $temFuncaoAposFiltrar = $this->criaFuncaoClasse($classeAposFiltrar, $funcaoAposFiltrar);
+        $temFuncaoAposFiltrar = $this->criaFuncaoClasse($classeTabela, $funcaoAposFiltrar);
 
         if ($temFuncaoAposFiltrar) {
-            $retorno = $classeAposFiltrar->$funcaoAposFiltrar($retorno);
+            $retorno = $classeTabela->$funcaoAposFiltrar($retorno);
         }
 
         $tela = $p['tela'] ?? $p['tabela'];

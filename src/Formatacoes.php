@@ -193,4 +193,83 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
         $temp = str_replace(',', '.', $temp);
         return ($temp);
     }
+
+    /**
+     * Valida CPF ou CNPJ (detecta automaticamente pelo tamanho).
+     *
+     * @param string $valor CPF ou CNPJ (pode conter pontuação).
+     * @return bool true se válido, false se inválido.
+     */
+    public function validarCPFCNPJ(string $valor): bool
+    {
+        $numero = preg_replace('/\D/', '', $valor);
+
+        if (strlen($numero) === 11) {
+            return $this->validarCPF($numero);
+        }
+        if (strlen($numero) === 14) {
+            return $this->validarCNPJ($numero);
+        }
+
+        return false;
+    }
+
+    /**
+     * Valida CPF pelos dígitos verificadores.
+     */
+    private function validarCPF(string $cpf): bool
+    {
+        if (preg_match('/^(\d)\1{10}$/', $cpf)) {
+            return false;
+        }
+
+        for ($i = 9; $i <= 10; $i++) {
+            $soma = 0;
+            for ($j = 0; $j < $i; $j++) {
+                $soma += (int) $cpf[$j] * ($i + 1 - $j);
+            }
+            $resto = $soma % 11;
+            $digito = $resto < 2 ? 0 : 11 - $resto;
+            if ((int) $cpf[$i] !== $digito) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Valida CNPJ pelos dígitos verificadores.
+     */
+    private function validarCNPJ(string $cnpj): bool
+    {
+        if (preg_match('/^(\d)\1{13}$/', $cnpj)) {
+            return false;
+        }
+
+        $pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        $pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+        $soma = 0;
+        for ($i = 0; $i < 12; $i++) {
+            $soma += (int) $cnpj[$i] * $pesos1[$i];
+        }
+        $resto = $soma % 11;
+        $digito1 = $resto < 2 ? 0 : 11 - $resto;
+        if ((int) $cnpj[12] !== $digito1) {
+            return false;
+        }
+
+        $soma = 0;
+        for ($i = 0; $i < 13; $i++) {
+            $soma += (int) $cnpj[$i] * $pesos2[$i];
+        }
+        $resto = $soma % 11;
+        $digito2 = $resto < 2 ? 0 : 11 - $resto;
+        if ((int) $cnpj[13] !== $digito2) {
+            return false;
+        }
+
+        return true;
+    }
 }
