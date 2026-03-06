@@ -1255,19 +1255,26 @@ class ConClasseGeral extends dadosConexao
     }
 
     public function proximaChaveAutoIncremento($tabela) : int{
-        $retorno = 0;
-        $database = $this->pegaDataBase($tabela);
+        $dataBase = $this->pegaDataBase($tabela);
+        $this->conecta($dataBase);
+        $con = $this->Conexoes[$dataBase];
 
-        $sqlBusca = "select auto_increment from information_schema.tables
-                        where table_schema = '$database' and table_name = '$tabela'";
-        $atual = $this->retornosqldireto($sqlBusca, '', 'tb_cobrancas')[0]['auto_increment'];
+        // Força atualização imediata (só para esta tabela)
+        mysqli_query($con, "ANALYZE TABLE `$tabela`");
 
+        // Ou (mais forte):
+        //mysqli_query($con, "FLUSH TABLES `$tabela`");
+
+        $sql = "SHOW TABLE STATUS WHERE Name = '$tabela' AND Engine IS NOT NULL";
+        $result = mysqli_query($con, $sql);
+        $row = mysqli_fetch_assoc($result);
+        $atual = $row['Auto_increment'];
         $proxima = intval($atual) + 1;
 
         $sqlAI = "alter table $tabela auto_increment = $proxima";
-        $this->executasql($sqlAI, $database);
+        $this->executasql($sqlAI, $dataBase);
 
-        return $atual;
+        return $proxima;
     }
 
     /**

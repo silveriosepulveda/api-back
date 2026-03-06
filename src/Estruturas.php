@@ -115,7 +115,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
         }
 
         $menus = $ms->pegar('menu');
-        $camposValidar = $menus['campos'][$estrutura['classe']] ?? [];
+        $camposValidar = isset($estrutura['classe']) && isset($menus['campos'][$estrutura['classe']]) ? $menus['campos'][$estrutura['classe']] : [];
 
         // Se não há campos para validar, retorna a estrutura original
         if (empty($camposValidar)) {
