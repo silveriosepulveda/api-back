@@ -520,7 +520,9 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
         if ($temCampoUsuario) {
             $sql .= ', chave_usuario';
-            $dados['chave_usuario'] = $this->pegaChaveUsuario();
+            $chaveU = $this->pegaChaveUsuario();
+            $chaveU = $chaveU > 0 ? $chaveU : 'null';
+            $dados['chave_usuario'] = $chaveU;
         }
 
         $sql .= ')VALUES(';
