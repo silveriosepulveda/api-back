@@ -47,10 +47,12 @@ $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
 $app->add(middleware: function (Request $request, $handler) {
+    $origin = $request->getHeaderLine('Origin') ?: '*';
+
     if ($request->getMethod() === 'OPTIONS') {
         $response = new \Slim\Psr7\Response();
         return $response
-            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Origin', $origin)
             ->withHeader('Access-Control-Allow-Headers', '*')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
             ->withHeader('Access-Control-Max-Age', '86400')
@@ -60,7 +62,7 @@ $app->add(middleware: function (Request $request, $handler) {
     $response = $handler->handle($request);
 
     return $response
-        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Origin', $origin)
         ->withHeader('Access-Control-Allow-Headers', '*')
         ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
         ->withHeader('Access-Control-Allow-Credentials', 'true');
