@@ -151,6 +151,7 @@ class ClasseGeral extends ConClasseGeral
 
         //Buscando tabelas relacionadas
         if (isset($p['tabelasRelacionadas'])) {
+            $p['tabelasRelacionadas'] = is_array($p['tabelasRelacionadas']) ? $p['tabelasRelacionadas'] : json_decode($p['tabelasRelacionadas'], true);
             foreach ($p['tabelasRelacionadas'] as $keyTR => $valTR) {
                 $camposTabelaRelacionada = $tbInfo->campostabela($keyTR);
 

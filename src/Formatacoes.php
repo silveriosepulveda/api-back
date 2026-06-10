@@ -116,7 +116,7 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
         if ($valor === 'undefined')
             $valor = null;
 
-        if (($tipo == 'varchar' || $tipo == 'char') && !is_array($valor)) {
+        if (($tipo == 'varchar' || $tipo == 'char' || $tipo == 'enum') && !is_array($valor)) {
             $valor = $valor != null ? $valor : '';
             $valor = "'" . trim(str_replace("'", "\'", $valor), '"') . "'";
         } else if ($tipo == 'longtext' || $tipo == 'text') {
@@ -157,7 +157,7 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
         } else if ($tipo == 'time') {
             if (strtolower($valor) != 'CURRENT_TIME')
                 $valor = "'" . $valor . "'";
-        } else if ($tipo == 'timestamp') {
+        } else if ($tipo == 'timestamp' || $tipo == 'datetime') {
 
             if ($valor != '') {
                 if ($valor == 'dataAtual') {

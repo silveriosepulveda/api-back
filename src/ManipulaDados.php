@@ -1044,9 +1044,12 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
         $novaConsulta = [];
         if ($refazerConsulta) {
-            if ($nova_chave > 0)
-                $novaConsulta = $this->pegaConsultaDados()->consulta($_SESSION[session_id()]['consultas'][$nomeMenuPermissoes]['parametrosConsulta'], 'array');
+            if ($nova_chave > 0) {
+                $nomeSessao = session_id();
+                $temp1 = $_SESSION[$nomeSessao]['consultas'][$nomeMenuPermissoes]['parametrosConsulta'];
 
+                $novaConsulta = $this->pegaConsultaDados()->consulta($_SESSION[session_id()]['consultas'][$nomeMenuPermissoes]['parametrosConsulta'], 'array');
+            }
         }
 
         return json_encode([
