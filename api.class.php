@@ -47,12 +47,10 @@ $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
 $app->add(middleware: function (Request $request, $handler) {
-    $origin = $request->getHeaderLine('Origin') ?: '*';
-
     if ($request->getMethod() === 'OPTIONS') {
         $response = new \Slim\Psr7\Response();
         return $response
-            ->withHeader('Access-Control-Allow-Origin', $origin)
+            ->withHeader('Access-Control-Allow-Origin', '*')
             ->withHeader('Access-Control-Allow-Headers', '*')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
             ->withHeader('Access-Control-Max-Age', '86400')
@@ -62,7 +60,7 @@ $app->add(middleware: function (Request $request, $handler) {
     $response = $handler->handle($request);
 
     return $response
-        ->withHeader('Access-Control-Allow-Origin', $origin)
+        ->withHeader('Access-Control-Allow-Origin', '*')
         ->withHeader('Access-Control-Allow-Headers', '*')
         ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
         ->withHeader('Access-Control-Allow-Credentials', 'true');
@@ -71,6 +69,11 @@ $app->add(middleware: function (Request $request, $handler) {
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
+    $sessionId = $request->getHeaderLine('x-session-id');
+
+    if ($sessionId) {
+        session_id($sessionId);
+    }
     @session_start();
 
     return $handler->handle($request);
