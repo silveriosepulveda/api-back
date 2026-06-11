@@ -62,7 +62,7 @@ class ConClasseGeral extends dadosConexao
      * Array de conexões abertas.
      * @var array
      */
-    public array $Conexoes;
+    public array $Conexoes = [];
 
     /**
      * Gerenciador de cache de classes
@@ -1482,8 +1482,8 @@ class ConClasseGeral extends dadosConexao
     public function buscaUsuarioLogado()
     {
 
-//        return $_SESSION[session_id()]['usuario'];
-        return $this->pegaManipulaSessao()->pegar('usuario');
+        return $_SESSION[session_id()]['usuario'];
+     //   return $this->pegaManipulaSessao()->pegar('usuario');
     }
 
     /**
