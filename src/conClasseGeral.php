@@ -59,10 +59,11 @@ class ConClasseGeral extends dadosConexao
     public string $q = "\n";
 
     /**
-     * Array de conexões abertas.
+     * Pool de conexões MySQL compartilhado entre todas as instâncias.
+     * Permite transações entre objetos diferentes (ex: transacoes + ManipulaDados).
      * @var array
      */
-    public array $Conexoes = [];
+    protected static array $Conexoes = [];
 
     /**
      * Gerenciador de cache de classes
@@ -244,10 +245,7 @@ class ConClasseGeral extends dadosConexao
      */
     public function conecta($dataBase = '')
     {
-        if ($dataBase != '' /*&& !isset($this->Conexoes[$dataBase])*/) {
-            if (isset($this->Conexoes[$dataBase])) {
-                $this->desconecta($dataBase);
-            }
+        if ($dataBase != '' && !isset(self::$Conexoes[$dataBase])) {
 
             date_default_timezone_set('America/Sao_Paulo');
 
@@ -255,9 +253,9 @@ class ConClasseGeral extends dadosConexao
             $usuario = $this->bases[$dataBase]['usuario'];
             $senha = $this->bases[$dataBase]['senha'];
 
-            $this->Conexoes[$dataBase] = new \mysqli($servidor, $usuario, $senha, $dataBase);
+            self::$Conexoes[$dataBase] = new \mysqli($servidor, $usuario, $senha, $dataBase);
 
-            mysqli_set_charset($this->Conexoes[$dataBase], "utf8");
+            mysqli_set_charset(self::$Conexoes[$dataBase], "utf8");
 
         }
     }
@@ -290,7 +288,7 @@ class ConClasseGeral extends dadosConexao
         $retorno = '';
 
         if ($this->bases[$dataBase]['tipo_base'] === 'MySQL') {
-            $con = $this->Conexoes[$dataBase];
+            $con = self::$Conexoes[$dataBase];
             ini_set('error_reporting', '~E_DEPRECATED');
             $con->query('set sql_mode=""');
             $retorno = $con->query($sql);
@@ -685,7 +683,7 @@ class ConClasseGeral extends dadosConexao
         //Depois tenho que altrar.
         $dataBase = $dataBase != '' ? $dataBase : $this->conexaoPadrao;
 
-        return $this->Conexoes[$dataBase]->affected_rows;
+        return self::$Conexoes[$dataBase]->affected_rows;
 
         if ($TipoBase === 'MySQL') {
             //return $this->ConexaoBase->affected_rows;
@@ -1257,7 +1255,7 @@ class ConClasseGeral extends dadosConexao
     public function proximaChaveAutoIncremento($tabela) : int{
         $dataBase = $this->pegaDataBase($tabela);
         $this->conecta($dataBase);
-        $con = $this->Conexoes[$dataBase];
+        $con = self::$Conexoes[$dataBase];
 
         // Força atualização imediata (só para esta tabela)
         mysqli_query($con, "ANALYZE TABLE `$tabela`");
