@@ -104,7 +104,7 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
         $ms = $this->pegaManipulaSessao();
         $usuario = $this->buscaUsuarioLogado();
 
-        if (!is_array($usuario))
+        if (!is_array($usuario) || isset($usuario['erro']))
             return ['erro' => 'Usuário Não logado'];
 
         $adm = $usuario['administrador_sistema'] == 'S' ?? false;

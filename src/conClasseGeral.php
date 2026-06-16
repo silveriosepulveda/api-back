@@ -1215,41 +1215,56 @@ class ConClasseGeral extends dadosConexao
      */
     public function proximachave($tabela, $atualizarSequencia = false)
     {
-        $tabInfo = new \ClasseGeral\TabelasInfo();
+        $lock_name = "seq_{$tabela}";
 
-        $proxima_chave = 0;
-        $tabelaOriginal = $tabela;
-        $tabela = $tabInfo->nometabela($tabela);
+        // Advisory lock — serializa acesso concorrente à sequência por tabela
+        $sqlLock = "SELECT GET_LOCK('{$lock_name}', 15) AS locked";
+        $resLock = $this->retornosqldireto($sqlLock, '', 'sequencias');
 
-        //A sequencia esta na base principal
-        $sql1 = "select chave as chave from sequencias where tabela = '$tabela'";
-        $chave = $this->retornosqldireto($sql1, '', 'sequencias');
-
-        $proxima_chave_sequencia = sizeof($chave) == 1 ? $chave[0]['chave'] : 1;
-
-        $proxima_chave_tabela = $this->maiorchavetabela($tabelaOriginal) + 1;
-
-        if ($proxima_chave_sequencia == 1 && !($proxima_chave_tabela > $proxima_chave_sequencia) && count($chave) == 0) {
-            $sqli = "insert into sequencias(tabela, chave)values('$tabela', $proxima_chave_sequencia)";
-            $this->executasql($sqli);
+        if (!isset($resLock[0]['locked']) || !$resLock[0]['locked']) {
+            throw new \RuntimeException(
+                "Não foi possível obter lock para sequência da tabela {$tabela}"
+            );
         }
 
-        //Se na tabela é maior que na sequencia recebe o valor da tabela, senao recebe o da sequencia
-        if ($proxima_chave_tabela > $proxima_chave_sequencia) {
-            //Atualizo a sequencia de acordo com a tabela
-            $sql2 = "update sequencias set chave = $proxima_chave_tabela where tabela = '$tabela'";
-            $res2 = $this->executasql($sql2);
-            $proxima_chave = $proxima_chave_tabela;
-        } else if ($proxima_chave_sequencia >= $proxima_chave_tabela) {
-            if ($atualizarSequencia)
-                $proxima_chave_sequencia++;
-            $sql2 = "update sequencias set chave = $proxima_chave_sequencia where tabela = '$tabela'";
-            $res2 = $this->executasql($sql2);
-            $proxima_chave = $proxima_chave_sequencia;
-        }
+        try {
+            $tabInfo = new \ClasseGeral\TabelasInfo();
 
-        return $proxima_chave;
-        //*/
+            $proxima_chave = 0;
+            $tabelaOriginal = $tabela;
+            $tabela = $tabInfo->nometabela($tabela);
+
+            //A sequencia esta na base principal
+            $sql1 = "select chave as chave from sequencias where tabela = '$tabela'";
+            $chave = $this->retornosqldireto($sql1, '', 'sequencias');
+
+            $proxima_chave_sequencia = sizeof($chave) == 1 ? $chave[0]['chave'] : 1;
+
+            $proxima_chave_tabela = $this->maiorchavetabela($tabelaOriginal) + 1;
+
+            if ($proxima_chave_sequencia == 1 && !($proxima_chave_tabela > $proxima_chave_sequencia) && count($chave) == 0) {
+                $sqli = "insert into sequencias(tabela, chave)values('$tabela', $proxima_chave_sequencia)";
+                $this->executasql($sqli);
+            }
+
+            //Se na tabela é maior que na sequencia recebe o valor da tabela, senao recebe o da sequencia
+            if ($proxima_chave_tabela > $proxima_chave_sequencia) {
+                //Atualizo a sequencia de acordo com a tabela
+                $sql2 = "update sequencias set chave = $proxima_chave_tabela where tabela = '$tabela'";
+                $res2 = $this->executasql($sql2);
+                $proxima_chave = $proxima_chave_tabela;
+            } else if ($proxima_chave_sequencia >= $proxima_chave_tabela) {
+                if ($atualizarSequencia)
+                    $proxima_chave_sequencia++;
+                $sql2 = "update sequencias set chave = $proxima_chave_sequencia where tabela = '$tabela'";
+                $res2 = $this->executasql($sql2);
+                $proxima_chave = $proxima_chave_sequencia;
+            }
+
+            return $proxima_chave;
+        } finally {
+            $this->executasql("SELECT RELEASE_LOCK('{$lock_name}')", $this->pegaDataBase('sequencias'));
+        }
     }
 
     public function proximaChaveAutoIncremento($tabela) : int{
@@ -1480,7 +1495,7 @@ class ConClasseGeral extends dadosConexao
     public function buscaUsuarioLogado()
     {
 
-        return $_SESSION[session_id()]['usuario'];
+        return $_SESSION[session_id()]['usuario'] ?? ['erro' => 'Usuário Não Logado'];
      //   return $this->pegaManipulaSessao()->pegar('usuario');
     }
 
