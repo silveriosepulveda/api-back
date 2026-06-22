@@ -114,14 +114,29 @@ class ClasseGeral extends ConClasseGeral
      */
     public function buscarParaAlterar(array $parametros, string $tipoRetorno = 'json'): mixed
     {
-        $tbInfo = new \ClasseGeral\TabelasInfo();
-
         $p = isset($parametros['filtros']) ? json_decode($parametros['filtros'], true) : $parametros;
 
+
+        $tbInfo = $this->pegaClasseCache('TabelasInfo');// new \ClasseGeral\TabelasInfo();
         $configTP = $tbInfo->buscaConfiguracoesTabela($p['tabela']);
 
-        $classe = $configTP['classe'] ?? $this->nomeClase($p['tabela']);
-        $nomeMenuPermissoes = $configTP['nomeMenuPermissoes'] ?? $classe;
+        $nomeClasse = $configTP['classe'] ?? $this->nomeClase($p['tabela']);
+
+//        $est = $this->pegaClasseCache('Estruturas');
+//        $estrutura = $est->buscarEstrutura(['classe' => $nomeClasse], 'array');
+//
+//        //Verificando se tem na estrutura da classe alguma funcao para executar antes de buscar para alterar
+//        // por enquanto apenas para validar se pode buscar para alterar, se tem alguma restrição
+//        if (isset($estrutura['acaoAntesBuscarParaAlterar'])){
+//            $classe = $this->criaClasseTabela($nomeClasse);
+//            $funcao = $this->criaFuncaoClasse($classe, $estrutura['acaoAntesBuscarParaAlterar']);
+//
+//            if ($funcao != null){
+//
+//            }
+//        }
+
+        $nomeMenuPermissoes = $configTP['nomeMenuPermissoes'] ?? $nomeClasse;
         $permissao = $this->validarPermissaoUsuario($nomeMenuPermissoes, 'Alterar');
 
         if (isset($permissao['aviso']))
@@ -166,7 +181,7 @@ class ClasseGeral extends ConClasseGeral
                 $r['ordem'] = $valTR['ordem'] ?? '';
                 $r['ordem'] .= isset($valTR['sentidoOrdem']) ? ' ' . $valTR['sentidoOrdem'] : '';
 
-                $nomeArrayRelacionado = isset($valTR['raizModelo']) ? $valTR['raizModelo'] : strtolower($this->nometabela($keyTR));
+                $nomeArrayRelacionado = $valTR['raizModelo'] ?? strtolower($this->nometabela($keyTR));
 
                 if (isset($valTR['verificarEmpresaUsuario']) && $valTR['verificarEmpresaUsuario']) {
                     $r['verificarEmpresaUsuario'] = true;
@@ -227,7 +242,7 @@ class ClasseGeral extends ConClasseGeral
             }
         }
 
-        $arqConTab = $caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php';
+        $arqConTab = $caminhoApiLocal . 'api/backLocal/classes/configuracoesTabelas.class.php';
         if (is_file($arqConTab)) {
             require_once $arqConTab;
             $classeConTab = '\\configuracoesTabelas';
@@ -238,8 +253,9 @@ class ClasseGeral extends ConClasseGeral
             if (method_exists($config, $tabela)) {
                 $configuracoesTabela = $config->$tabela();
 
-                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
-                    require_once $caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
+                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'api/backLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
+                    require_once $caminhoApiLocal . 'api/backLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
+
                     if (isset($configuracoesTabela['aoBuscarParaAlterar'])) {
                         $classeABA = new ('\\' . $configuracoesTabela['aoBuscarParaAlterar']['classe'])();
                         if (method_exists($classeABA, $configuracoesTabela['aoBuscarParaAlterar']['funcaoExecutar'])) {
@@ -610,7 +626,7 @@ class ClasseGeral extends ConClasseGeral
 
             //Nova funcao que vai verificar se tem na classe alguma funcao chamada aoAnexar
             $nomeClasse = $this->nomeClase($tabela);
-            $arquivoClasse = $caminho . 'apiLocal/classes/' . $nomeClasse . '.class.php';
+            $arquivoClasse = $caminho . 'api/backLocal/classes/' . $nomeClasse . '.class.php';
 
             if (file_exists($arquivoClasse)) {
                 require_once $arquivoClasse;
@@ -747,7 +763,7 @@ class ClasseGeral extends ConClasseGeral
         $this->exclui('arquivos_anexos', 'chave_anexo', $anexo['chave_anexo']);
 
         $nomeClasse = '\\' . $this->nomeClase($tabela);
-        $arquivoClasse = $caminho . 'apiLocal/classes/' . $nomeClasse . '.class.php';
+        $arquivoClasse = $caminho . 'backLocal/classes/' . $nomeClasse . '.class.php';
 
 //        //Nova funcao que vai verificar se tem na classe alguma funcao chamada aoAnexar
         if (file_exists($arquivoClasse)) {

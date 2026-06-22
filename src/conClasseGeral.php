@@ -3,6 +3,7 @@
 namespace ClasseGeral;
 
 use PharIo\Manifest\Manifest;
+use function PHPUnit\Framework\fileExists;
 
 /**
  * Classe base para operações de conexão e manipulação de dados gerais.
@@ -1767,6 +1768,12 @@ class ConClasseGeral extends dadosConexao
             }
         }
         return $novo;
+    }
+
+    private function arquivoClasseExiste($nomeClasse){
+        $caminho = $this->pegaCaminhoApi();
+        return fileExists($caminho . '/api/backLocal/classes/' . $nomeClasse . '.class.php');
+
     }
 
     /**

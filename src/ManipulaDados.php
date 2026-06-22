@@ -362,16 +362,16 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
             }
         }
 
-        if (is_file($caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php')) {
-            require_once $caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php';
+        if (is_file($caminhoApiLocal . 'backLocal/classes/configuracoesTabelas.class.php')) {
+            require_once $caminhoApiLocal . 'backLocal/classes/configuracoesTabelas.class.php';
             $config = $this->pegaConfiguracoesTabelas();
             $tabela = strtolower($tabela);
 
             if (method_exists($config, $tabela)) {
                 $configuracoesTabela = $config->$tabela();
 
-                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
-                    require_once $caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
+                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'backLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
+                    require_once $caminhoApiLocal . 'backLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
                     if ($acao == 'inserir' && isset($configuracoesTabela['aoIncluir'])) {
                         $classeAI = new ('\\' . $configuracoesTabela['aoIncluir']['classe'])();
                         if (method_exists($classeAI, $configuracoesTabela['aoIncluir']['funcaoExecutar'])) {
@@ -884,6 +884,10 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         $campo_chave = $tabInfo->campochavetabela($tabelaOriginal);
         $campo_chavem = strtolower($campo_chave);
 
+        //Vendo se a tabela tem data_alteracao
+        $temDataAlteracao = isset($campos['data_alteracao']);
+
+
         //Iniciando o sql
         $sql = "UPDATE $tabela SET ";
         //Verificando se os campos do formulário coincidem com os campos da tabela
@@ -925,6 +929,9 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
                 //fazer rotina para inserçao em log pois nao existe na tabela o campo do formulário
             }
         }
+
+        if ($temDataAlteracao)
+            $sql.= ', data_alteracao = now() ';
 
         $sql .= " WHERE $campo_chave = $dados[$campo_chavem]";
 
@@ -1022,15 +1029,15 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
 
         $caminhoApiLocal = $this->pegaCaminhoApi();
 
-        if (is_file($caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php')) {
+        if (is_file($caminhoApiLocal . 'backLocal/classes/configuracoesTabelas.class.php')) {
 
-            require_once $caminhoApiLocal . 'apiLocal/classes/configuracoesTabelas.class.php';
+            require_once $caminhoApiLocal . 'backLocal/classes/configuracoesTabelas.class.php';
             $config = new ('\\configuracoesTabelas')();
             if (method_exists($config, $nomeTabela)) {
                 $configuracoesTabela = $config->$nomeTabela();
 
-                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
-                    require_once $caminhoApiLocal . 'apiLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
+                if (isset($configuracoesTabela['classe']) && file_exists($caminhoApiLocal . 'backLocal/classes/' . $configuracoesTabela['classe'] . '.class.php')) {
+                    require_once $caminhoApiLocal . 'backLocal/classes/' . $configuracoesTabela['classe'] . '.class.php';
                     if (isset($configuracoesTabela['aoExcluir']['classe'])) {
                         $classeAE = new ('\\' . $configuracoesTabela['aoExcluir']['classe'])();
                         if (method_exists($classeAE, $configuracoesTabela['aoExcluir']['funcaoExecutar'])) {
