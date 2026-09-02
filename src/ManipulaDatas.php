@@ -441,8 +441,9 @@ class ManipulaDatas
             $dia = $temp[0];
         }
 
-        $date = mktime(0, 0, 0, $mes, $dia, $ano);
-        return (int)date('W', $date);
+      //  $date = mktime(0, 0, 0, $mes, $dia, $ano);
+      //  return (int)date('W', $date);
+        return date('W', strtotime($ano . '-' . $mes . '-' . $dia));
     }
 
     /**

@@ -292,6 +292,7 @@ class ConClasseGeral extends dadosConexao
             $con = self::$Conexoes[$dataBase];
             ini_set('error_reporting', '~E_DEPRECATED');
             $con->query('set sql_mode=""');
+
             $retorno = $con->query($sql);
             if (!$retorno) {
                 $this->desconecta($dataBase);

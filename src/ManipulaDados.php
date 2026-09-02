@@ -624,8 +624,10 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
                 'acao' => $acao,
                 'chave_usuario' => $chaveUsuario,
                 'chave_acesso' => $this->pegaChaveAcesso(),
-                'valor_anterior' => json_encode($valorAnteriorInserirLog),  //json_encode($valorAnterior),
-                'valor_novo' => json_encode($valorNovoInserirLog), // $valorNovo, //json_encode($valorNovo),
+                'valor_novo' => json_encode($valorNovoInserirLog, JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE),
+                'valor_anterior' => json_encode($valorAnteriorInserirLog, JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE),
+                //'valor_anterior' => json_encode($valorAnteriorInserirLog),  //json_encode($valorAnterior),
+                //'valor_novo' => json_encode($valorNovoInserirLog), // $valorNovo, //json_encode($valorNovo),
                 'data_log' => date('Y-m-d H:i:s')
             ];
 
@@ -697,7 +699,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
                 }
             } else if (is_array($tipo)) {
                 //Nesse caso e um array
-                $camposIgnorar = isset($tipo['ignorarObrigatorio']) ? array_merge($camposIgnorar, $tipo['ignorarObrigatorio']) : [];
+                $camposIgnorar = isset($tipo['ignorarObrigatorio']) ? array_merge($camposIgnorar, $tipo['ignorarObrigatorio']) : $camposIgnorar;
                 //Varrendo o bloco para validar cada no
 
                 foreach ($dados[$campo] ?? [] as $keyBloco => $dadosValidarBloco) {

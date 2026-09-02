@@ -138,7 +138,11 @@ $app->get('/centralCriadores/site/{funcao_executar}/{parametros}', function (Req
     $API = 'centralCriadores';
     $tabela = 'site';
     $funcaoExecutar = $args['funcao_executar'];
-    $parametros = descriptografaarray(json_decode($args['parametros'], true));
+    if ($args['parametros'] != '*')
+        $parametros = descriptografaarray(json_decode($args['parametros'], true));
+    else
+        $parametros = $args['parametros'];
+
     global $caminho;
 
     $arquivo = $caminho . 'api/backLocal/apiSite.class.php';
@@ -285,23 +289,23 @@ $app->post('/eventLogTransacoes/criarLog', function (Request $request, Response 
     $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
     require_once $caminho . 'api/backLocal/classes/EventLogTransacoes.class.php';
     $eventLog = new EventLogTransacoes();
-    
+
     $raw = file_get_contents('php://input');
     $dados = json_decode($raw, true);
     if (!is_array($dados)) {
         $dados = $_POST;
     }
-    
-    $chaveTransacao = (int) ($dados['chave_transacao'] ?? 0);
-    $etapa         = $dados['etapa'] ?? '';
-    $status        = $dados['status'] ?? 'sucesso';
-    
-    $payloadEnvio   = isset($dados['payload_envio'])   ? json_decode($dados['payload_envio'], true)   ?? $dados['payload_envio']   : null;
+
+    $chaveTransacao = (int)($dados['chave_transacao'] ?? 0);
+    $etapa = $dados['etapa'] ?? '';
+    $status = $dados['status'] ?? 'sucesso';
+
+    $payloadEnvio = isset($dados['payload_envio']) ? json_decode($dados['payload_envio'], true) ?? $dados['payload_envio'] : null;
     $payloadRetorno = isset($dados['payload_retorno']) ? json_decode($dados['payload_retorno'], true) ?? $dados['payload_retorno'] : null;
-    $erroMensagem   = $dados['erro_mensagem'] ?? null;
-    $httpCode       = isset($dados['http_code'])       ? (int) $dados['http_code']                    : null;
-    $chaveUsuario   = isset($dados['chave_usuario'])   ? (int) $dados['chave_usuario']                : null;
-    
+    $erroMensagem = $dados['erro_mensagem'] ?? null;
+    $httpCode = isset($dados['http_code']) ? (int)$dados['http_code'] : null;
+    $chaveUsuario = isset($dados['chave_usuario']) ? (int)$dados['chave_usuario'] : null;
+
     $resultado = $eventLog->logar(
         $chaveTransacao,
         $etapa,
@@ -312,9 +316,9 @@ $app->post('/eventLogTransacoes/criarLog', function (Request $request, Response 
         $httpCode,
         $chaveUsuario
     );
-    
+
     $response->getBody()->write(json_encode([
-        'sucesso'   => $resultado !== false,
+        'sucesso' => $resultado !== false,
         'chave_log' => $resultado
     ]));
     return $response;
