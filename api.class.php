@@ -20,10 +20,38 @@ register_shutdown_function(function () {
  */
 
 //Instanciando o arquivo funcoes.class.php e vou tentar utilizado nos demais arquivos sem precisar instancia-lo novamente.
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: *');
+// CORS para credentialed cross-origin (ex.: dev React em localhost chamando
+// a API direto, sem proxy). O browser EXIGE Origin explícito quando
+// Allow-Credentials: true; '*' + credentials é rejeitado (axios: Network Error).
+// Ecoa o Origin apenas para origens confiáveis; demais mantêm '*'.
+function corsAllowedOrigin(): string {
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $permitidas = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://playeron.com',
+        'http://playeron.com:8000',
+        'http://playeronpay.com',
+        'http://playeronpay.com:8001',
+        'https://playeron.pokeron.app',
+        'https://pay.pokeron.app',
+        'https://testes.pokeron.app',
+    ];
+    if ($origin !== '' && in_array($origin, $permitidas, true)) {
+        return $origin;
+    }
+    return '*';
+}
+$__corsOrigin = corsAllowedOrigin();
+header('Access-Control-Allow-Origin: ' . $__corsOrigin);
+// Lista explícita (não '*'): '*' não funciona como curinga em preflight COM credentials.
+// Inclui X-Session-Id (sessão via header, usada pelo frontend em dev direto).
+header('Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Session-Id, Access-Control-Request-Method, Access-Control-Request-Headers');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
-header('Access-Control-Allow-Credentials: true');
+if ($__corsOrigin !== '*') {
+    header('Access-Control-Allow-Credentials: true');
+}
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -47,23 +75,31 @@ $app = AppFactory::create();
 $app->setBasePath("/api/api-back");
 
 $app->add(middleware: function (Request $request, $handler) {
+    // Mesma regra CORS do topo (eco de Origin permitido; '*' sem credentials).
+    $__corsOrigin = corsAllowedOrigin();
+    $__corsHeaders = [
+        'Access-Control-Allow-Origin' => $__corsOrigin,
+        'Access-Control-Allow-Headers' => 'X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Session-Id, Access-Control-Request-Method, Access-Control-Request-Headers',
+        'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    ];
+    if ($__corsOrigin !== '*') {
+        $__corsHeaders['Access-Control-Allow-Credentials'] = 'true';
+    }
     if ($request->getMethod() === 'OPTIONS') {
         $response = new \Slim\Psr7\Response();
+        foreach ($__corsHeaders as $__k => $__v) {
+            $response = $response->withHeader($__k, $__v);
+        }
         return $response
-            ->withHeader('Access-Control-Allow-Origin', '*')
-            ->withHeader('Access-Control-Allow-Headers', '*')
-            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
             ->withHeader('Access-Control-Max-Age', '86400')
-            ->withHeader('Access-Control-Allow-Credentials', 'true')
             ->withStatus(200);
     }
     $response = $handler->handle($request);
 
-    return $response
-        ->withHeader('Access-Control-Allow-Origin', '*')
-        ->withHeader('Access-Control-Allow-Headers', '*')
-        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
-        ->withHeader('Access-Control-Allow-Credentials', 'true');
+    foreach ($__corsHeaders as $__k => $__v) {
+        $response = $response->withHeader($__k, $__v);
+    }
+    return $response;
 });
 
 $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
