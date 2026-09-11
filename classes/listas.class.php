@@ -12,7 +12,7 @@ use ClasseGeral\ConClasseGeral;
 //$arqcon = is_file("../BaseArcabouco/bancodedados/conexao.php") ? "../BaseArcabouco/bancodedados/conexao.php" : "BaseArcabouco/bancodedados/conexao.php";
 //require_once $arqcon;
 
-class listas extends \ClasseGeral\ConClasseGeral
+class listas extends \ClasseGeral\ClasseGeral
 {
     private $funcoes = "../BaseArcabouco/funcoes.class.php";
 
@@ -59,6 +59,7 @@ class listas extends \ClasseGeral\ConClasseGeral
     public function substituirLista($parametros)
     {
         $p = $parametros;
+        $tbInfo = $this->pegaTabelasInfo();
 
         $campo_chave = 'chave_' . strtolower($p['nome_lista']);
 
@@ -70,7 +71,7 @@ class listas extends \ClasseGeral\ConClasseGeral
 
         foreach ($tabelas as $key => $val) {
             $tabela = $val['tabela_secundaria'];
-            $campoChaveTabela = $this->campochavetabela($tabela);
+            $campoChaveTabela = $tbInfo->campochavetabela($tabela);
             $sqll = "UPDATE $tabela SET $campo_chave = $p[chave_substituir] WHERE $campo_chave = $p[chave_lista] and $campoChaveTabela > 0";
 
             $res = $this->executasql($sqll, $dataBase);

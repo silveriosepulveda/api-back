@@ -107,7 +107,14 @@ $secretKey = 'rYCBLhvichk%WPjM%ayW9x7Uv^pQUqRBY#%vpur9!2e9^Y3JYo';
 $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
     $sessionId = $request->getHeaderLine('x-session-id');
 
-    if ($sessionId) {
+    // Fallback p/ navegações sem header (ex.: window.open de exports):
+    // a sessão viaja em ?sid= na URL. Aditivo — caminho do header intacto.
+    if (!$sessionId) {
+        $qp = $request->getQueryParams();
+        $sessionId = $qp['sid'] ?? $qp['sessionId'] ?? '';
+    }
+
+    if ($sessionId && preg_match('/^[a-zA-Z0-9,-]+$/', $sessionId)) {
         session_id($sessionId);
     }
     @session_start();

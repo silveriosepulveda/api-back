@@ -376,7 +376,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
                                 if (isset($campo['selecionado']) && $campo['selecionado'] && !$campoPadrao) {
                                     $temCampos = true;
                                     $inc = array('chave_usuario' => $chave_usuario, 'chave_menu' => $chave_menu, 'chave_item' => $chave_item, 'chave_campo' => $chave_campo);
-                                    $con->inclui('usuarios_perfil', $inc, 0, false);
+                                    $con->inclui('usuarios_perfil', $inc, 0, true);
                                 }
                             }
                         }
