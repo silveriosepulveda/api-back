@@ -24,7 +24,8 @@ register_shutdown_function(function () {
 // a API direto, sem proxy). O browser EXIGE Origin explícito quando
 // Allow-Credentials: true; '*' + credentials é rejeitado (axios: Network Error).
 // Ecoa o Origin apenas para origens confiáveis; demais mantêm '*'.
-function corsAllowedOrigin(): string {
+function corsAllowedOrigin(): string
+{
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     $permitidas = [
         'http://localhost:3000',
@@ -43,6 +44,7 @@ function corsAllowedOrigin(): string {
     }
     return '*';
 }
+
 $__corsOrigin = corsAllowedOrigin();
 header('Access-Control-Allow-Origin: ' . $__corsOrigin);
 // Lista explícita (não '*'): '*' não funciona como curinga em preflight COM credentials.
@@ -276,8 +278,10 @@ $app->post('/{API}/{tabela}/{funcao_executar}', function (Request $request, Resp
 
 $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $argumentos) {
     $tabela = $argumentos['tabela'];
+    $nomeClasse = $tabela;
     $funcaoExecutar = $argumentos['funcao_executar'];
     $parametros = $argumentos['parametros'];
+    $arq = '';
 
     continuar();
     if (substr($parametros, 0, 1) == '{') {
@@ -290,12 +294,13 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
 
     require_once 'vendor/autoload.php';;
     $conex = new \ClasseGeral\ClasseGeral();
+    $caminhoApi = $conex->pegaCaminhoApi();
 
     //Fazendo alteracoes para adaptar classeGeralLocal
     if ($tabela == 'classeGeral') {
         $usarClasseGeralLocal = false;
 
-        $arqClasseLocal = $conex->pegaCaminhoApi() . 'backLocal/classes/classeGeralLocal.class.php';
+        $arqClasseLocal = $caminhoApi . 'backLocal/classes/classeGeralLocal.class.php';
         if (is_file($arqClasseLocal)) {
             $classe = new ('\\classeGeralLocal')();
             if (method_exists($classe, $funcaoExecutar)) {
@@ -307,18 +312,27 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
             //require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'api/classes/classeGeral.class.php';
             $classe = new ClasseGeral\ClasseGeral();
         }
-    } else
+    } elseif($tabela == 'usuarios'){
+        if (is_file($caminhoApi . 'api/backLocal/classes/usuarios.class.php'))
+            $arq = $caminhoApi . 'api/backLocal/classes/usuarios.class.php';
+        else {
+            $arq = $caminhoApi . 'api/api-back/classes/usuarios.class.php';
+            $nomeClasse = 'usuariosApi';
+        }
+    }else
         //Fazendo alteracoes para adaptar a APILocal
         //if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php')) {
         $arq = '';
-    $arq = $conex->pegaCaminhoApi() . 'api/backLocal/classes/' . $tabela . '.class.php';
+
+
+    $arq = $arq == '' ? $caminhoApi . 'api/backLocal/classes/' . $nomeClasse . '.class.php' : $arq;
 
     if (is_file($arq)) {
         require_once($arq);
-        $classe = new $tabela();
-    } elseif (is_file('classes/' . $tabela . '.class.php')) {
-        require_once('classes/' . $tabela . '.class.php');
-        $classe = new $tabela();
+        $classe = new $nomeClasse();
+    } elseif (is_file('classes/' . $nomeClasse . '.class.php')) {
+        require_once('classes/' . $nomeClasse . '.class.php');
+        $classe = new $nomeClasse();
     }
 
 

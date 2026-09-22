@@ -110,6 +110,7 @@ class ConClasseGeral extends dadosConexao
      */
     public function pegaDataHora(): string
     {
+        date_default_timezone_set('America/Sao_Paulo');
         return date('Y-m-d H:i:s');
     }
 
@@ -257,6 +258,8 @@ class ConClasseGeral extends dadosConexao
             self::$Conexoes[$dataBase] = new \mysqli($servidor, $usuario, $senha, $dataBase);
 
             mysqli_set_charset(self::$Conexoes[$dataBase], "utf8");
+
+            self::$Conexoes[$dataBase]->query("SET time_zone = '-03:00'");
 
         }
     }

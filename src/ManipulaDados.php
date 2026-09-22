@@ -92,7 +92,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
         //Vendo se existem as funcoes antesSalvar e antesAlterar na classe, caso exista chamo
         if (isset($dados[$campoChave]) && $dados[$campoChave] > 0) {
             $acao = 'editar';
-        } else if (!isset($dados[$campoChave]) || $dados[$campoChave] == 0) {
+        } else if (!isset($dados[$campoChave]) || $dados[$campoChave] == 0 || $dados[$campoChave] == '') {
             $acao = 'inserir';
         }
 
