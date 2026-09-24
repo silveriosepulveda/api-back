@@ -19,7 +19,8 @@ if (isset($_SESSION[session_id()]['caminhoApiLocal'])) {
     if (is_file($arq))
         require_once $arq;
 } else
-    include $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php';
+    // *_once: api.class.php já pode ter carregado (CORS lê os domínios do projeto).
+    include_once $_SERVER['DOCUMENT_ROOT'] . '/api/backLocal/classes/dadosConexao.class.php';
 
 
 class ConClasseGeral extends dadosConexao

@@ -27,6 +27,10 @@ register_shutdown_function(function () {
 function corsAllowedOrigin(): string
 {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+    // Lista base (genérica/dev). Os domínios de cada PROJETO devem ficar no
+    // `dadosConexao` do projeto (`origensPermitidasCors()` e
+    // `dominiosPermitidosCors()`), não aqui — este arquivo é compartilhado.
     $permitidas = [
         'http://localhost:3000',
         'http://localhost:3001',
@@ -39,9 +43,50 @@ function corsAllowedOrigin(): string
         'https://pay.pokeron.app',
         'https://testes.pokeron.app',
     ];
-    if ($origin !== '' && in_array($origin, $permitidas, true)) {
+    $dominiosPermitidos = [];
+
+    // Origens do projeto via dadosConexao (ex.: sancolor).
+    $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+    if ($docRoot !== '') {
+        $arqConexao = $docRoot . '/api/backLocal/classes/dadosConexao.class.php';
+        if (is_file($arqConexao)) {
+            require_once $arqConexao;
+        }
+    }
+    if (class_exists('ClasseGeral\\dadosConexao')) {
+        if (method_exists('ClasseGeral\\dadosConexao', 'origensPermitidasCors')) {
+            $extras = \ClasseGeral\dadosConexao::origensPermitidasCors();
+            if (is_array($extras)) {
+                $permitidas = array_merge($permitidas, $extras);
+            }
+        }
+        if (method_exists('ClasseGeral\\dadosConexao', 'dominiosPermitidosCors')) {
+            $doms = \ClasseGeral\dadosConexao::dominiosPermitidosCors();
+            if (is_array($doms)) {
+                $dominiosPermitidos = $doms;
+            }
+        }
+    }
+
+    if ($origin === '') {
+        return '*';
+    }
+    if (in_array($origin, $permitidas, true)) {
         return $origin;
     }
+
+    // Subdomínios/portas dos domínios do projeto (ex.: www). Necessário porque
+    // o front chama a API de outra origem (com credentials), e `*` +
+    // `Allow-Credentials: true` é rejeitado pelo browser.
+    $host = parse_url($origin, PHP_URL_HOST);
+    if (is_string($host) && $host !== '') {
+        foreach ($dominiosPermitidos as $dominio) {
+            if ($host === $dominio || str_ends_with($host, '.' . $dominio)) {
+                return $origin;
+            }
+        }
+    }
+
     return '*';
 }
 
