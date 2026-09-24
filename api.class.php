@@ -326,6 +326,14 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
     $nomeClasse = $tabela;
     $funcaoExecutar = $argumentos['funcao_executar'];
     $parametros = $argumentos['parametros'];
+
+    // Defesa: segmento {parametros} ausente (ex.: proxy/WAF que altera o path).
+    // Retorna 400 limpo em vez de deixar a função quebrar com null.
+    if (!is_string($parametros) || $parametros === '') {
+        error_log('[api.class.php] parametros ausentes na rota GET: tabela=' . $tabela . ' funcao=' . $funcaoExecutar);
+        $response->getBody()->write(json_encode(['erro' => 'Parâmetros ausentes na URL']));
+        return $response->withStatus(400);
+    }
     $arq = '';
 
     continuar();

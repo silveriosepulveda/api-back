@@ -22,6 +22,16 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
     {
         $p = $parametros;
 
+        // Defesa: segmento {parametros} ausente/malformado na URL (ex.: proxy/WAF
+        // que altera o path) — retorna erro limpo em vez de SQL quebrado.
+        // Loga só metadados (nunca as credenciais) para diagnóstico.
+        if (!is_array($p) || empty($p['login'])) {
+            error_log('[logarUsuario] parametros invalidos: tipo=' . gettype($parametros)
+                . ' len=' . (is_string($parametros) ? strlen($parametros) : 0)
+                . ' inicio=' . (is_string($parametros) ? substr($parametros, 0, 20) : ''));
+            return json_encode(['erro' => 'Parâmetros de login ausentes ou inválidos']);
+        }
+
         $r = array();
         $ms = new \ClasseGeral\ManipulaSessao();
         $manipula = new \ClasseGeral\ManipulaDados();
