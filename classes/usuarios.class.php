@@ -11,6 +11,15 @@
 
 class usuariosApi extends \ClasseGeral\ConClasseGeral
 {
+
+
+    public function buscarUsuariosExibirPerfil(): string
+    {
+        $sql = "select chave_cadastro as chave_usuario, nome, administrador_sistema as administrador, cpf_cnpj as login, chave_perfil_padrao";
+        $sql .= " from view_usuarios where chave_cadastro > 1 and disponivel = 'S' and usuario_sistema = 'S'";
+        return json_encode($this->retornosqldireto($sql, 'view_usuarios'));
+    }
+
     public function validarLoginUsuario($parametros)
     {
         $usuario = $this->buscaUsuarioLogado();
@@ -185,6 +194,7 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
 
     public function buscarPerfilUsuario($chave_usuario, $tipoRetorno = 'json')
     {
+        $chave_usuario = is_string($chave_usuario) ? $chave_usuario : $chave_usuario['chave_usuario'];
         $usuario = $this->buscacamposporchave('tb_cadastros', ['chave_perfil_padrao'], $chave_usuario);
 
         $chave_perfil_padrao = $usuario['chave_perfil_padrao'];
@@ -420,5 +430,102 @@ class usuariosApi extends \ClasseGeral\ConClasseGeral
         $dados['chave_cadastro'] = $dados['chave_usuario'];
         $con->altera('tb_cadastros', $dados);
         return json_encode(array('sucesso' => $dados['chave_usuario']));
+    }
+
+    public function estrutura()
+    {
+        return array(
+            'tipoEstrutura' => 'padrao',
+            'tabela' => 'tb_cadastros',
+            'tabelaConsulta' => 'view_usuarios',
+            'campo_chave' => 'chave_cadastro',
+            'raizModelo' => 'usuarios',
+            'textoPagina' => 'Gerenciamento de Usuários',
+            'textoNovo' => 'Incluir Usuário',
+            'nomeUsual' => 'Usuários',
+            'todasEtiquetasEmbutidas' => true,
+            'textoFormCadastro' => 'Cadastro de Usuário',
+            'textoFormAlteracao' => 'Alteração de Usuário',
+            'ocultarBotoesSuperiores' => 'true',
+            'ocultarExcluir' => true,
+            'filtrarAoIniciar' => true,
+            'ocultarDetalhes' => true,
+            'camposNaoDuplicar' => ['login'],
+            'listaConsulta' =>
+                array(
+                    'nome' =>
+                        array(
+                            'md' => 6,
+                        )
+                ),
+            'filtrosPadrao' => [
+                'usuario_sistema' => [
+                    'operador' => '=',
+                    'valor' => 'S',
+                    'exibir' => false,
+                    'obrigatorio' => true,
+                ]
+            ],
+            'campos' =>
+                array(
+                    'nome' =>
+                        array(
+                            'texto' => 'Nome do Usuário',
+                            'md' => '7',
+//                            'obrigatorio' => 'true',
+//                            'atributos_input' =>
+//                                array(
+//                                    'valor_existe' => '',
+//                                ),
+                            'habilitadoEdicao' => false
+                        ),
+//                    'cpf_cnpj' => [
+//                        'texto' => 'CPF/CNPJ',
+//                        'md' => 5,
+////                        'obrigatorio' => true,
+//                        'tipo' => 'cpf-cnpj',
+//                        'habilitadoEdicao' => false
+//                    ],
+                    'login' => [
+                        'texto' => 'Login',
+                        'md' => '3',
+                        'obrigatorio' => true,
+                    ],
+                    'senha' =>
+                        array(
+                            'texto' => 'Senha',
+                            'md' => 3,
+                            'obrigatorio' => 'true',
+                            'tipo' => 'senha',
+                        ),
+                    'administrador_sistema' =>
+                        array(
+                            'texto' => 'Adm',
+                            'tipo' => 'select-sim-nao',
+                            'padrao' => 'N',
+                            'verificarPerfil' => true,
+                            'md' => 2,
+                        ),
+                    'usuario_sistema' => [
+                        'tipo' => 'oculto',
+                        'padrao' => 'S',
+                        'obrigatorio' => true,
+                    ],
+//                    'tipo' =>
+//                        array(
+//                            'texto' => 'Tipo de Usuário',
+//                            'md' => 4,
+//                            'autoCompleta' =>
+//                                array(
+//                                    'tabela' => 'tb_cadastros_tipo',
+//                                    'campoChave' => 'chave_cadastro_tipo',
+//                                    'campoValor' => 'tipo',
+//                                    'campoChave2' => 'origem',
+//                                    'chave2' => 'UsuarioSistema',
+//                                ),
+//                            'obrigatorio' => true,
+//                        )
+                ),
+        );
     }
 }

@@ -192,6 +192,16 @@ class ClassesCache
     }
 
     /**
+     * Classes implementadas no api-back compartilhado (não no backLocal).
+     * Chave (minúscula) = nome solicitado; valor = [arquivo relativo ao
+     * api-back, FQN da classe]. Paridade com api.class.php
+     * (ex.: `usuarios` → `usuariosApi`). Para novos casos, adicione uma linha.
+     */
+    private const CLASSES_API_BACK = [
+        'usuarios' => ['classes/usuarios.class.php', '\\usuariosApi'],
+    ];
+
+    /**
      * Cria uma instância de uma classe a partir do nome da classe com cache.
      * 
      * @param string $classe Nome da classe a ser instanciada.
@@ -220,11 +230,28 @@ class ClassesCache
             $this->instanceCache[$chaveCache] = $instancia;
             
             return $instancia;
-        } else {
-            // Armazenar false no cache para evitar verificações repetidas de arquivos inexistentes
-            $this->instanceCache[$chaveCache] = false;
-            return false;
         }
+
+        // Fallback: classe do api-back compartilhado (ex.: `usuarios` só existe
+        // lá). Permite hooks (antesSalvar etc.) dessas classes.
+        $mapa = self::CLASSES_API_BACK[strtolower($classe)] ?? null;
+        if ($mapa) {
+            [$rel, $fqn] = $mapa;
+            // Dir do api-back = pai de src/ (este arquivo), independente do projeto.
+            $arquivoApiBack = dirname(__DIR__) . '/' . $rel;
+            if (is_file($arquivoApiBack)) {
+                require_once $arquivoApiBack;
+                if (class_exists($fqn)) {
+                    $instancia = new $fqn();
+                    $this->instanceCache[$chaveCache] = $instancia;
+                    return $instancia;
+                }
+            }
+        }
+
+        // Armazenar false no cache para evitar verificações repetidas de arquivos inexistentes
+        $this->instanceCache[$chaveCache] = false;
+        return false;
     }
 
     /**

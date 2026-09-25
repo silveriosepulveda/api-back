@@ -29,16 +29,24 @@ class Estruturas extends \ClasseGeral\ClasseGeral {
         $caminhoAPILocal = $_SESSION[session_id()]['caminhoApiLocal'];
 
         $arquivo = '';
+        $classeEstrutura = $classe;
         //Implementando a comparacao para configuracoesMenus que está em api-back e não em backLocal
-        if ($classe == 'configuracaoMenus')
+        if ($classe == 'configuracaoMenus') {
             $arquivo = $caminhoAPILocal . 'api/api-back/classes/' . $classe . '.class.php';
-        else
+        } else if ($classe == 'usuarios' && !file_exists($caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php')) {
+            // Estrutura de usuários vive no api-back (classe `usuariosApi`).
+            // Mantém a comparação: backLocal primeiro, api-back como fallback.
+            // Paridade com api.class.php e ClassesCache::CLASSES_API_BACK.
+            $arquivo = $caminhoAPILocal . 'api/api-back/classes/' . $classe . '.class.php';
+            $classeEstrutura = '\\usuariosApi';
+        } else {
             $arquivo = $caminhoAPILocal . 'api/backLocal/classes/' . $classe . '.class.php';
+        }
 
         if (file_exists($arquivo)) {
             require_once($arquivo);
 
-            $temp = new $classe();
+            $temp = new $classeEstrutura();
 
             $funcaoEstrutura = !is_array($parametros) || !isset($parametros['funcaoEstrutura']) ? 'estrutura' : $parametros['funcaoEstrutura'];
 

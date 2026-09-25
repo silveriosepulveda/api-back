@@ -45,12 +45,19 @@ function corsAllowedOrigin(): string
     ];
     $dominiosPermitidos = [];
 
-    // Origens do projeto via dadosConexao (ex.: sancolor).
+    // Origens do projeto via dadosConexao (ex.: sancolor). Localiza o arquivo
+    // por DOCUMENT_ROOT e, em fallback, relativo ao próprio api.class.php
+    // (quando o api-back é cópia física dentro do projeto).
+    $candidatos = [];
     $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
     if ($docRoot !== '') {
-        $arqConexao = $docRoot . '/api/backLocal/classes/dadosConexao.class.php';
+        $candidatos[] = $docRoot . '/api/backLocal/classes/dadosConexao.class.php';
+    }
+    $candidatos[] = dirname(__DIR__, 2) . '/api/backLocal/classes/dadosConexao.class.php';
+    foreach ($candidatos as $arqConexao) {
         if (is_file($arqConexao)) {
             require_once $arqConexao;
+            break;
         }
     }
     if (class_exists('ClasseGeral\\dadosConexao')) {
@@ -445,17 +452,26 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
     } else {
         require_once 'vendor/autoload.php';;
         $conex = new \ClasseGeral\ClasseGeral();
+        $caminhoApi = $conex->pegaCaminhoApi();
 
-        //Fazendo alteracoes para adaptar a APILocal
-        $arq = '';
-        $arq = $conex->pegaCaminhoApi() . 'api/backLocal/classes/' . $tabela . '.class.php';
+        // Paridade com a rota GET: `usuarios` vive no api-back (classe `usuariosApi`).
+        // Mantém a comparação backLocal primeiro.
+        $nomeClasse = $tabela;
+        if ($tabela == 'usuarios' && !is_file($caminhoApi . 'api/backLocal/classes/usuarios.class.php')) {
+            $arq = $caminhoApi . 'api/api-back/classes/usuarios.class.php';
+            $nomeClasse = 'usuariosApi';
+        } else {
+            //Fazendo alteracoes para adaptar a APILocal
+            $arq = '';
+            $arq = $caminhoApi . 'api/backLocal/classes/' . $tabela . '.class.php';
+        }
 
         if (is_file($arq))
             require_once($arq);
         elseif (is_file('classes/' . $tabela . '.class.php'))
             require_once('classes/' . $tabela . '.class.php');
 
-        $classe = new $tabela();
+        $classe = new $nomeClasse();
     }
     $response->getBody()->write($classe->$funcao($_POST));
     return $response;
