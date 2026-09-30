@@ -1,16 +1,10 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Tratamento geral de erros: qualquer falha não tratada responde JSON {"erro": "..."}.
+// Detalhe completo (classe, arquivo, linha, trace) vai só para error_log.
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
-register_shutdown_function(function () {
-    $error = error_get_last();
-    if ($error !== null) {
-        // return json_encode(print_r($error, true));
-        echo "<pre>Erro fatal: ";
-        print_r($error);
-        echo "</pre>";
-    }
-});
+ini_set('log_errors', 1);
 
 /**
  * Created by PhpStorm.
@@ -107,6 +101,62 @@ if ($__corsOrigin !== '*') {
     header('Access-Control-Allow-Credentials: true');
 }
 
+// Envelope único de erro: sempre JSON {"erro": "<mensagem>"} com HTTP 500.
+// O detalhe (classe, arquivo, linha, trace) vai só para error_log — nunca para o browser.
+function apiBackEnviarErroJson(string $mensagem, int $httpCode = 500): void
+{
+    error_log('[api-back] ' . $mensagem);
+    if (headers_sent()) {
+        return;
+    }
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    http_response_code($httpCode);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Access-Control-Allow-Origin: ' . corsAllowedOrigin());
+    echo json_encode(['erro' => $mensagem], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+set_exception_handler(function (\Throwable $e): void {
+    error_log(sprintf(
+        '[api-back] excecao %s: %s em %s:%d | trace: %s',
+        get_class($e),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    ));
+    apiBackEnviarErroJson($e->getMessage() !== '' ? $e->getMessage() : 'Erro interno na api-back', 500);
+});
+
+set_error_handler(function (int $errno, string $errstr, string $errfile = '', int $errline = 0): bool {
+    // Respeita @ (error_reporting() == 0) e converte o resto em exceção p/ cair no envelope JSON.
+    if (!(error_reporting() & $errno)) {
+        return false;
+    }
+    throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+});
+
+register_shutdown_function(function (): void {
+    $error = error_get_last();
+    if ($error === null) {
+        return;
+    }
+    $fatais = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_RECOVERABLE_ERROR];
+    if (!in_array($error['type'] ?? 0, $fatais, true)) {
+        return;
+    }
+    $mensagem = sprintf(
+        '%s em %s:%d',
+        $error['message'] ?? 'Erro fatal',
+        $error['file'] ?? '?',
+        $error['line'] ?? 0
+    );
+    error_log('[api-back] fatal ' . $mensagem);
+    apiBackEnviarErroJson($error['message'] ?? 'Erro fatal na api-back', 500);
+});
+
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
@@ -177,7 +227,34 @@ $authMiddleware = function (Request $request, $handler) use ($secretKey, $app) {
 };
 
 $app->addRoutingMiddleware();
-$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+$errorMiddleware = $app->addErrorMiddleware(false, true, true);
+$errorMiddleware->setDefaultErrorHandler(function (
+    Request $request,
+    \Throwable $exception,
+    bool $displayErrorDetails,
+    bool $logErrors,
+    bool $logErrorDetails
+) use ($app): Response {
+    error_log(sprintf(
+        '[api-back] excecao Slim %s: %s em %s:%d | trace: %s',
+        get_class($exception),
+        $exception->getMessage(),
+        $exception->getFile(),
+        $exception->getLine(),
+        $exception->getTraceAsString()
+    ));
+    $response = $app->getResponseFactory()->createResponse(500);
+    $response->getBody()->write(json_encode(
+        ['erro' => $exception->getMessage() !== '' ? $exception->getMessage() : 'Erro interno na api-back'],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    ));
+    $corsOrigin = corsAllowedOrigin();
+    return $response
+        ->withHeader('Content-Type', 'application/json; charset=utf-8')
+        ->withHeader('Access-Control-Allow-Origin', $corsOrigin)
+        ->withHeader('Access-Control-Allow-Headers', 'X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Session-Id, Access-Control-Request-Method, Access-Control-Request-Headers')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+});
 
 function descriptografaarray($valor)
 {
@@ -223,7 +300,7 @@ function continuar(): bool
 //    require_once $caminho . 'backLocal/configuracoesAPIs.php';
 //}
 
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 function validaApi($apiKey)
 {
