@@ -122,26 +122,11 @@ class ClasseGeral extends ConClasseGeral
 
         $nomeClasse = $configTP['classe'] ?? $this->nomeClase($p['tabela']);
 
-//        $est = $this->pegaClasseCache('Estruturas');
-//        $estrutura = $est->buscarEstrutura(['classe' => $nomeClasse], 'array');
-//
-//        //Verificando se tem na estrutura da classe alguma funcao para executar antes de buscar para alterar
-//        // por enquanto apenas para validar se pode buscar para alterar, se tem alguma restrição
-//        if (isset($estrutura['acaoAntesBuscarParaAlterar'])){
-//            $classe = $this->criaClasseTabela($nomeClasse);
-//            $funcao = $this->criaFuncaoClasse($classe, $estrutura['acaoAntesBuscarParaAlterar']);
-//
-//            if ($funcao != null){
-//
-//            }
-//        }
-
         $nomeMenuPermissoes = $configTP['nomeMenuPermissoes'] ?? $nomeClasse;
         $permissao = $this->validarPermissaoUsuario($nomeMenuPermissoes, 'Alterar');
 
         if (isset($permissao['aviso']))
             return json_encode($permissao);
-
 
         $caminhoApiLocal = $this->pegaCaminhoApi(); // $_SESSION[session_id()]['caminhoApiLocal'];
 

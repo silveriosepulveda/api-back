@@ -449,12 +449,10 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
      * @param bool $inserirLog (Opcional) Se deve ou não inserir um log da operação.
      * @return mixed Retorna a chave do registro inserido ou 0 em caso de falha.
      */
-    public function inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed
+    public function  inclui(string $tabela, array $dados, null|int $chave_primaria = 0, bool $mostrarsql = false, bool $inserirLog = true, bool $formatar = true): mixed
     {
         $tabInfo = $this->pegaTabelasInfo();
         $formata = $this->pegaFormatacoes();
-
-        $nova_chave = 0;
 
         $tabelasIgnorarChavUsuario = ['acessos', 'usuarios_perfil', 'usuarios_empresas', 'usuarios_empresas_grupos', 'usuarios', 'eventos_sistema'];
 
@@ -591,6 +589,7 @@ class ManipulaDados extends \ClasseGeral\ClasseGeral
             }
         }
         return $nova_chave;
+        //*/
     }
 
     public function incluirLog($tabela, $chave_tabela, $acao, $valorAnterior = [], $valorNovo = '')

@@ -50,7 +50,12 @@ function corsAllowedOrigin(): string
     $candidatos[] = dirname(__DIR__, 2) . '/api/backLocal/classes/dadosConexao.class.php';
     foreach ($candidatos as $arqConexao) {
         if (is_file($arqConexao)) {
-            require_once $arqConexao;
+            // A classe pode já ter sido carregada pelo bootstrap/autoloader
+            // por outra grafia de caminho (o require_once não deduplica
+            // nesses casos) — reexigir aqui dá fatal "already in use".
+            if (!class_exists('ClasseGeral\\dadosConexao', false)) {
+                require_once $arqConexao;
+            }
             break;
         }
     }
@@ -433,14 +438,18 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
     $conex = new \ClasseGeral\ClasseGeral();
     $caminhoApi = $conex->pegaCaminhoApi();
 
-    //Fazendo alteracoes para adaptar classeGeralLocal
+    //Fazendo alteracoes para adaptar classeGeralLocal.
+    // (corrigido: path com api/, require_once + FQCN \ClasseGeral\classeGeralLocal.
+    // Antes era código morto e caía sempre na base — ex.: buscarAnexos da galeria.)
     if ($tabela == 'classeGeral') {
         $usarClasseGeralLocal = false;
 
-        $arqClasseLocal = $caminhoApi . 'backLocal/classes/classeGeralLocal.class.php';
+        $arqClasseLocal = $caminhoApi . 'api/backLocal/classes/classeGeralLocal.class.php';
         if (is_file($arqClasseLocal)) {
-            $classe = new ('\\classeGeralLocal')();
-            if (method_exists($classe, $funcaoExecutar)) {
+            require_once($arqClasseLocal);
+            $tmpClasseGeralLocal = new \ClasseGeral\classeGeralLocal();
+            if (method_exists($tmpClasseGeralLocal, $funcaoExecutar)) {
+                $classe = $tmpClasseGeralLocal;
                 $usarClasseGeralLocal = true;
             }
         }
@@ -473,7 +482,9 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
     }
 
 
-    $response->getBody()->write($classe->$funcaoExecutar($parametros));
+    // Funções legadas de export/download escrevem o binário direto (echo)
+    // e retornam null — o cast evita TypeError no Slim em PHP 8+.
+    $response->getBody()->write((string)($classe->$funcaoExecutar($parametros) ?? ''));
     return $response;
 })->add($authMiddleware);
 
@@ -525,7 +536,24 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
 
 
     if ($tabela == 'classeGeral') {
-        $classe = new \ClasseGeral\ClasseGeral();
+        // Paridade com a rota GET: prefere o override do projeto
+        // (backLocal/classes/classeGeralLocal) quando ele define o método —
+        // ex.: anexarArquivos da galeria (tabela_fotos). Senão, base.
+        $classe = null;
+        require_once 'vendor/autoload.php';;
+        $conex = new \ClasseGeral\ClasseGeral();
+        $caminhoApi = $conex->pegaCaminhoApi();
+        $arqClasseLocal = $caminhoApi . 'api/backLocal/classes/classeGeralLocal.class.php';
+        if (is_file($arqClasseLocal)) {
+            require_once($arqClasseLocal);
+            $tmpClasseGeralLocal = new \ClasseGeral\classeGeralLocal();
+            if (method_exists($tmpClasseGeralLocal, $funcao)) {
+                $classe = $tmpClasseGeralLocal;
+            }
+        }
+        if ($classe === null) {
+            $classe = new \ClasseGeral\ClasseGeral();
+        }
     } else {
         require_once 'vendor/autoload.php';;
         $conex = new \ClasseGeral\ClasseGeral();

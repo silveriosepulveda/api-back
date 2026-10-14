@@ -286,6 +286,7 @@ class ConsultaDados extends \ClasseGeral\ClasseGeral
         $retornoSessao['lista'] = $retorno['lista'];
         $retornoSessao['parametrosSQL'] = $s;
 
+        $tempS = session_id();
         $sessao->setar('consultas,' . $classeTabelaNome, $retornoSessao);
 
         $this->desconecta($s['dataBase']);
