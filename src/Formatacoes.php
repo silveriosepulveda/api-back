@@ -46,7 +46,7 @@ class Formatacoes extends \ClasseGeral\ClasseGeral {
             }
             $retorno = $valor != '' ? number_format($valor, 2, ',', '.') : '';
 
-        } else if ($tipo == 'varchar' || $tipo == 'char' || $tipo == 'text') {
+        } else if ($tipo == 'varchar' || $tipo == 'char' || $tipo == 'text' || $tipo == 'enum') {
             $retorno = $valor != null && $valor != 'undefined' ? $valor : '';
         } else if ($tipo == 'urlYoutube') {
             $retorno = str_replace('watch?v=', 'embed/', $valor);
