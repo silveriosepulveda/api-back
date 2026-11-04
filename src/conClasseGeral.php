@@ -1403,11 +1403,21 @@ class ConClasseGeral extends dadosConexao
             $sql .= " AND TP.$campo_chave2 = $chave2";
         }
 
-        if ($campo_chave3 != '') {
+        // chave3/chave4 entram sem aspas no SQL. Se vierem vazias/undefined,
+        // o AND fica incompleto ("= and ...") e a query retorna 500.
+        $chave3Valida = is_scalar($chave3)
+            && $chave3 !== ''
+            && $chave3 !== 'undefined'
+            && $chave3 !== 'null';
+        if ($campo_chave3 != '' && $chave3Valida) {
             $sql .= " AND TP.$campo_chave3 = $chave3";
         }
 
-        if ($campo_chave4 != '') {
+        $chave4Valida = is_scalar($chave4)
+            && $chave4 !== ''
+            && $chave4 !== 'undefined'
+            && $chave4 !== 'null';
+        if ($campo_chave4 != '' && $chave4Valida) {
             $sql .= " AND TP.$campo_chave4 = $chave4";
         }
 
@@ -1462,7 +1472,11 @@ class ConClasseGeral extends dadosConexao
         }
 
         if ($p['ordenar'] == 'S' || $p['ordenar']) {
-            $campoOrdem = isset($p['campoOrdem']) && $p['campoOrdem'] != 'null' ? $p['campoOrdem'] : $campo_valor;
+            // Campo de ordenação vazio gera "ORDER BY TP." e erro de SQL.
+            // Alguns autoCompletes enviam campoOrdem '' quando não configurado.
+            $campoOrdem = isset($p['campoOrdem']) && $p['campoOrdem'] != 'null' && $p['campoOrdem'] != ''
+                ? $p['campoOrdem']
+                : $campo_valor;
             $sql .= " ORDER BY TP.$campoOrdem";
         } else {
             $sql .= " ORDER BY TP.$campo_chave";

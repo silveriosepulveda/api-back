@@ -354,9 +354,9 @@ class ClasseGeral extends ConClasseGeral
                 } else {
                     $caminhoArquivo = $caminho . $val['arquivo'];
                 }
-
+// echo $caminhoArquivo . $this->q;
                 if (is_file($caminhoArquivo) && !array_key_exists($caminhoArquivo, $arquivosVerificados)) {
-
+   //                 echo $caminhoArquivo;
                     $arquivosVerificados[$caminhoArquivo] = $caminhoArquivo;
 
                     $extensao = pathinfo($caminhoArquivo, PATHINFO_EXTENSION);
@@ -649,9 +649,38 @@ class ClasseGeral extends ConClasseGeral
         $alturaOriginal = 0;
 
         if ($tipo == 'files') {
-            list($larguraOriginal, $alturaOriginal) = getimagesize($arquivo['tmp_name']);
-        } else if ($tipo = 'base64') {
-            list($larguraOriginal, $alturaOriginal) = getimagesize($arquivo);
+            $info = @getimagesize($arquivo['tmp_name']);
+            if (is_array($info)) {
+                $larguraOriginal = (int) ($info[0] ?? 0);
+                $alturaOriginal = (int) ($info[1] ?? 0);
+            }
+        } else if ($tipo == 'base64') {
+            $dados = $arquivo;
+            if (is_string($dados) && strpos($dados, ',') !== false) {
+                $dados = substr($dados, strpos($dados, ',') + 1);
+            }
+            $binario = @base64_decode((string) $dados, true);
+            if ($binario !== false) {
+                $info = @getimagesizefromstring($binario);
+                if (is_array($info)) {
+                    $larguraOriginal = (int) ($info[0] ?? 0);
+                    $alturaOriginal = (int) ($info[1] ?? 0);
+                }
+            }
+            // Fallback para implementações antigas que passam um caminho de arquivo
+            if ($larguraOriginal <= 0 || $alturaOriginal <= 0) {
+                $info = @getimagesize($arquivo);
+                if (is_array($info)) {
+                    $larguraOriginal = (int) ($info[0] ?? 0);
+                    $alturaOriginal = (int) ($info[1] ?? 0);
+                }
+            }
+        }
+
+        // Fallback quando não foi possível ler as dimensões (evita divisão por zero)
+        if ($larguraOriginal <= 0 || $alturaOriginal <= 0) {
+            $larguraOriginal = 1024;
+            $alturaOriginal = 768;
         }
 
         $largMax = 1024;
@@ -669,9 +698,21 @@ class ClasseGeral extends ConClasseGeral
             $altMax = $altEnt;
         }
 
+        if ($largMax <= 0) {
+            $largMax = $larguraOriginal;
+        }
+        if ($altMax <= 0) {
+            $altMax = $alturaOriginal;
+        }
+
         $orientacao = $larguraOriginal > $alturaOriginal ? 'paisagem' : 'retrato';
 
-        $valorProporcionar = $orientacao == 'paisagem' ? $largMax / $larguraOriginal : $altMax / $alturaOriginal;
+        // Evita divisão por zero
+        if ($orientacao == 'paisagem') {
+            $valorProporcionar = $larguraOriginal > 0 ? $largMax / $larguraOriginal : 1;
+        } else {
+            $valorProporcionar = $alturaOriginal > 0 ? $altMax / $alturaOriginal : 1;
+        }
 
         $novaLargura = (int)($larguraOriginal * $valorProporcionar);
         $novaLargura = min($novaLargura, $larguraOriginal);
