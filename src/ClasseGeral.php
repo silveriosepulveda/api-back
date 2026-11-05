@@ -509,8 +509,6 @@ class ClasseGeral extends ConClasseGeral
         $caminho = $this->pegaCaminhoApi();// $_SESSION[session_id()]['caminhoApiLocal'];
         $tabela = $this->nometabela($p['tabela']);
 
-        ini_set('display_errors', 1);
-
         $arquivosCopiarColar = [];
 
         //Neste caso esta na consulta e enviando anexos por copiar e colar
@@ -574,39 +572,55 @@ class ClasseGeral extends ConClasseGeral
                         $dimensoes = $this->defineTamanhoImagem($novoNomeBase64Temp, 'base64', $largura, $altura);
 
                         // Fonte da imagem (auto-detecta formato; evita bool em imagecopyresized)
-                        $imagemSource = @imagecreatefromstring($arquivoUp);
-                        if ($imagemSource === false) {
+                        $imagemSource = false;
+                        if (function_exists('imagecreatefromstring')) {
+                            $imagemSource = @imagecreatefromstring($arquivoUp);
+                        }
+                        if ($imagemSource === false && function_exists('imagecreatefrompng')) {
                             $imagemSource = @imagecreatefrompng($novoNomeBase64Temp);
                         }
 
-                        if ($imagemSource !== false) {
-                            //Criando a imagem grande
-                            $imagem = imagecreatetruecolor($dimensoes['largura'], $dimensoes['altura']);
-                            if ($imagem !== false) {
-                                imagecopyresized($imagem, $imagemSource, 0, 0, 0, 0, $dimensoes['largura'], $dimensoes['altura'],
-                                    $dimensoes['larguraOriginal'], $dimensoes['alturaOriginal']);
-                                imagepng($imagem, $novoNomeBase64);
-                                imagedestroy($imagem);
-                            } else {
-                                // Fallback: salva o original sem redimensionar
-                                copy($novoNomeBase64Temp, $novoNomeBase64);
-                            }
+                        try {
+                            if ($imagemSource !== false && function_exists('imagecreatetruecolor')) {
+                                //Criando a imagem grande
+                                $imagem = @imagecreatetruecolor($dimensoes['largura'], $dimensoes['altura']);
+                                if ($imagem !== false) {
+                                    @imagecopyresized($imagem, $imagemSource, 0, 0, 0, 0, $dimensoes['largura'], $dimensoes['altura'],
+                                        $dimensoes['larguraOriginal'], $dimensoes['alturaOriginal']);
+                                    if (function_exists('imagepng')) {
+                                        @imagepng($imagem, $novoNomeBase64);
+                                    } else {
+                                        copy($novoNomeBase64Temp, $novoNomeBase64);
+                                    }
+                                    @imagedestroy($imagem);
+                                } else {
+                                    copy($novoNomeBase64Temp, $novoNomeBase64);
+                                }
 
-                            //Criando o Thumb
-                            $thumb = imagecreatetruecolor($dimensoes['larguraThumb'], $dimensoes['alturaThumb']);
-                            if ($thumb !== false) {
-                                imagecopyresized($thumb, $imagemSource, 0, 0, 0, 0, $dimensoes['larguraThumb'], $dimensoes['alturaThumb'],
-                                    $dimensoes['larguraOriginal'], $dimensoes['alturaOriginal']);
-                                imagepng($thumb, $destinom . $nomeComExtencao);
-                                imagedestroy($thumb);
+                                //Criando o Thumb
+                                $thumb = @imagecreatetruecolor($dimensoes['larguraThumb'], $dimensoes['alturaThumb']);
+                                if ($thumb !== false) {
+                                    @imagecopyresized($thumb, $imagemSource, 0, 0, 0, 0, $dimensoes['larguraThumb'], $dimensoes['alturaThumb'],
+                                        $dimensoes['larguraOriginal'], $dimensoes['alturaOriginal']);
+                                    if (function_exists('imagepng')) {
+                                        @imagepng($thumb, $destinom . $nomeComExtencao);
+                                    } else {
+                                        copy($novoNomeBase64Temp, $destinom . $nomeComExtencao);
+                                    }
+                                    @imagedestroy($thumb);
+                                } else {
+                                    copy($novoNomeBase64Temp, $destinom . $nomeComExtencao);
+                                }
+                                @imagedestroy($imagemSource);
                             } else {
+                                // Sem GD disponível ou imagem ilegível: salva o original
+                                copy($novoNomeBase64Temp, $novoNomeBase64);
                                 copy($novoNomeBase64Temp, $destinom . $nomeComExtencao);
                             }
-                            imagedestroy($imagemSource);
-                        } else {
-                            // Não foi possível ler a imagem: salva o original sem redimensionar
-                            copy($novoNomeBase64Temp, $novoNomeBase64);
-                            copy($novoNomeBase64Temp, $destinom . $nomeComExtencao);
+                        } catch (\Throwable $eImg) {
+                            // Nunca deixa a falha de imagem abortar o lançamento da transação
+                            @copy($novoNomeBase64Temp, $novoNomeBase64);
+                            @copy($novoNomeBase64Temp, $destinom . $nomeComExtencao);
                         }
 
                         unlink($novoNomeBase64Temp);
