@@ -858,7 +858,7 @@ class ClasseGeral extends ConClasseGeral
             throw new \InvalidArgumentException('Esperado array em $parametros');
         }
         $chave = $this->altera('arquivos_anexos', $parametros, $parametros['chave_anexo'], false);
-        echo json_encode(array('chave' => $chave));
+        return json_encode(array('chave' => $chave));
     }
 
     /**
@@ -921,6 +921,8 @@ class ClasseGeral extends ConClasseGeral
         $this->executasql($sql, $this->pegaDataBase('arquivos_anexos'));
         $sql = "UPDATE arquivos_anexos SET posicao = $p[posicao2] WHERE chave_anexo = $p[chave2];";
         $this->executasql($sql, $this->pegaDataBase('arquivos_anexos'));
+
+        return json_encode(['sucesso' => true]);
     }
 
     /**
@@ -1098,5 +1100,52 @@ class ClasseGeral extends ConClasseGeral
 
         return json_encode($this->retornosqldireto($s, 'montar', $p['tabela'], false, false));
 
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // MÉTODOS DE COMPATIBILIDADE — AutoCompleta
+    //////////////////////////////////////////////////////////////////////
+    // As funções de autocompletar foram movidas para a classe dedicada
+    // ClasseGeral\AutoCompleta. Estes wrappers mantêm a retrocompatibilidade
+    // para chamadas que ainda passam pela rota classeGeral/completaCampo
+    // (instanciando ClasseGeral\ClasseGeral).
+
+    /**
+     * Completa um campo com sugestões baseadas em um texto informado.
+     * Delegado para AutoCompleta::completacampo().
+     *
+     * @param array $p Parâmetros para a busca.
+     * @return string JSON com [{chave, valor, complemento_valor, valor2, valor3, valor4, imagem}].
+     */
+    public function completacampo(array $p): string
+    {
+        $autoCompleta = new \ClasseGeral\AutoCompleta();
+        return $autoCompleta->completacampo($p);
+    }
+
+    /**
+     * Completa um campo buscando em todas as tabelas que possuem o campo.
+     * Delegado para AutoCompleta::completacampopornomedecampo().
+     *
+     * @param string $campo Nome do campo a ser pesquisado.
+     * @return void (imprime JSON)
+     */
+    public function completacampopornomedecampo($campo)
+    {
+        $autoCompleta = new \ClasseGeral\AutoCompleta();
+        return $autoCompleta->completacampopornomedecampo($campo);
+    }
+
+    /**
+     * Retorna as tabelas que possuem um determinado campo.
+     * Delegado para AutoCompleta::listatabelaspornomedecampo().
+     *
+     * @param string $campo Nome do campo a ser pesquisado.
+     * @return array Tabelas que possuem o campo.
+     */
+    public function listatabelaspornomedecampo($campo)
+    {
+        $autoCompleta = new \ClasseGeral\AutoCompleta();
+        return $autoCompleta->listatabelaspornomedecampo($campo);
     }
 }

@@ -444,19 +444,25 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
     if ($tabela == 'classeGeral') {
         $usarClasseGeralLocal = false;
 
-        $arqClasseLocal = $caminhoApi . 'api/backLocal/classes/classeGeralLocal.class.php';
-        if (is_file($arqClasseLocal)) {
-            require_once($arqClasseLocal);
-            $tmpClasseGeralLocal = new \ClasseGeral\classeGeralLocal();
-            if (method_exists($tmpClasseGeralLocal, $funcaoExecutar)) {
-                $classe = $tmpClasseGeralLocal;
-                $usarClasseGeralLocal = true;
+        // Funções de autocompletar foram movidas para a classe dedicada AutoCompleta
+        $funcoesAutocomplete = ['completaCampo', 'completaCampoPorNomeDecampo', 'listaTabelasPorNomeDecampo'];
+        if (in_array($funcaoExecutar, $funcoesAutocomplete)) {
+            $arq = $caminhoApi . 'api/api-back/src/AutoCompleta.php';
+            $nomeClasse = 'ClasseGeral\AutoCompleta';
+        } else {
+            $arqClasseLocal = $caminhoApi . 'api/backLocal/classes/classeGeralLocal.class.php';
+            if (is_file($arqClasseLocal)) {
+                require_once($arqClasseLocal);
+                $tmpClasseGeralLocal = new \ClasseGeral\classeGeralLocal();
+                if (method_exists($tmpClasseGeralLocal, $funcaoExecutar)) {
+                    $classe = $tmpClasseGeralLocal;
+                    $usarClasseGeralLocal = true;
+                }
             }
-        }
 
-        if (!$usarClasseGeralLocal) {
-            //require_once $_SESSION[session_id()]['caminhoApiLocal'] . 'api/classes/classeGeral.class.php';
-            $classe = new ClasseGeral\ClasseGeral();
+            if (!$usarClasseGeralLocal) {
+                $classe = new ClasseGeral\ClasseGeral();
+            }
         }
     } elseif($tabela == 'usuarios'){
         if (is_file($caminhoApi . 'api/backLocal/classes/usuarios.class.php'))
@@ -465,7 +471,10 @@ $app->get('/{tabela}/{funcao_executar}/{parametros}', function (Request $request
             $arq = $caminhoApi . 'api/api-back/classes/usuarios.class.php';
             $nomeClasse = 'usuariosApi';
         }
-    }else
+    } elseif($tabela == 'AutoCompleta') {
+        $arq = $caminhoApi . 'api/api-back/src/AutoCompleta.php';
+        $nomeClasse = 'ClasseGeral\AutoCompleta';
+    } else
         //Fazendo alteracoes para adaptar a APILocal
         //if (is_file($_SESSION[session_id()]['caminhoApiLocal'] . 'backLocal/classes/' . $tabela . '.class.php')) {
         $arq = '';
@@ -534,6 +543,16 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
     $tabela = $argumentos['tabela'];
     $funcao = $argumentos['funcao'];
 
+    // Lê os dados enviados via POST. Suporte tanto application/x-www-form-urlencoded
+    // (preenche $_POST) quanto application/json (dados em php://input).
+    $postData = $_POST;
+    if (empty($postData)) {
+        $input = file_get_contents('php://input');
+        $decoded = json_decode($input, true);
+        if (is_array($decoded)) {
+            $postData = $decoded;
+        }
+    }
 
     if ($tabela == 'classeGeral') {
         // Paridade com a rota GET: prefere o override do projeto
@@ -578,7 +597,7 @@ $app->post('/{tabela}/{funcao}', function (Request $request, Response $response,
 
         $classe = new $nomeClasse();
     }
-    $response->getBody()->write($classe->$funcao($_POST));
+    $response->getBody()->write($classe->$funcao($postData));
     return $response;
 })
     ->add($authMiddleware);
