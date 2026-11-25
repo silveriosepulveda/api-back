@@ -50,7 +50,7 @@ class AutoCompleta extends \ClasseGeral\ClasseGeral
 
         $campo_imagem = $p['campoImagem'] ?? '';
 
-        $campo_chave2 = isset($p['campo_chave2']) && $p['campo_chave'] != 'undefided' ? strtolower($p['campo_chave2']) : '';
+        $campo_chave2 = isset($p['campo_chave2']) && $p['campo_chave2'] != 'undefined' ? strtolower($p['campo_chave2']) : '';
         $chave2 = $p['chave2'] ?? 0;
         if ($chave2 === '') $chave2 = 0;
 

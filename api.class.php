@@ -354,6 +354,82 @@ $app->post('/centralCriadores/site/{funcao_executar}', function (Request $reques
     return $response;
 })->add($authMiddleware);
 
+// [IAP] Assinaturas do app criadores — rotas ESTÁTICAS (padrão de /centralCriadores/site).
+// A rota genérica /{API}/{tabela} só carrega o arquivo da API; assinaturasApp
+// vive em backLocal/classes/ e o POST do app envia JSON (não $_POST).
+// Whitelist: a classe herda helpers genéricos do ClasseGeral que não são endpoints.
+$app->get('/centralCriadores/assinaturasApp/{funcao_executar}/{parametros}', function (Request $request, Response $response, $args) {
+    $funcoesIapApp = ['configurarIap', 'listarPlanos', 'minhaAssinatura', 'validarCompra'];
+    if (!in_array($args['funcao_executar'], $funcoesIapApp, true)) {
+        $response->getBody()->write(json_encode(['erro' => 'Função não disponível.']));
+        return $response->withStatus(404);
+    }
+    global $caminho;
+    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+    require_once $caminho . 'api/backLocal/classes/assinaturasApp.class.php';
+    $classe = new assinaturasApp();
+    $parametros = $args['parametros'];
+    if ($parametros !== '*' && substr($parametros, 0, 1) == '{') {
+        $parametros = descriptografaarray(json_decode($parametros, true));
+    }
+    $response->getBody()->write((string)($classe->{$args['funcao_executar']}($parametros) ?? ''));
+    return $response;
+})->add($authMiddleware);
+
+$app->post('/centralCriadores/assinaturasApp/{funcao_executar}', function (Request $request, Response $response, $args) {
+    $funcoesIapApp = ['configurarIap', 'listarPlanos', 'minhaAssinatura', 'validarCompra'];
+    if (!in_array($args['funcao_executar'], $funcoesIapApp, true)) {
+        $response->getBody()->write(json_encode(['erro' => 'Função não disponível.']));
+        return $response->withStatus(404);
+    }
+    global $caminho;
+    $_SESSION[session_id()]['caminhoApiLocal'] = $caminho;
+    require_once $caminho . 'api/backLocal/classes/assinaturasApp.class.php';
+    $classe = new assinaturasApp();
+    $parametros = $_POST;
+    if (empty($parametros)) {
+        $decoded = json_decode((string)file_get_contents('php://input'), true);
+        if (is_array($decoded)) {
+            $parametros = $decoded;
+        }
+    }
+    $response->getBody()->write((string)($classe->{$args['funcao_executar']}($parametros) ?? ''));
+    return $response;
+})->add($authMiddleware);
+
+// [IAP] Webhooks estáticos das lojas — ANTES das rotas variáveis /{API}/{tabela}/{funcao}
+// e /{tabela}/{funcao}: o Slim rejeita rota estática registrada depois de variável
+// que a sombreia (erro 500 em TODA a API, não só no webhook).
+// Sem authMiddleware: autenticação própria (segredo Pub/Sub / JWS da Apple).
+// Ver sistema/api/backLocal/classes/assinaturasIapWebhook.class.php.
+$app->post('/assinaturas/iap/google', function (Request $request, Response $response, $argumentos) {
+    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
+    require_once $caminho . 'api/backLocal/classes/assinaturasIapWebhook.class.php';
+    $webhook = new assinaturasIapWebhook();
+    // Pub/Sub push não permite header customizado; aceita o segredo também
+    // por query string (?secret=...).
+    $segredo = $request->getHeaderLine('X-IAP-Secret');
+    if ($segredo === '') {
+        $params = $request->getQueryParams();
+        $segredo = (string)($params['secret'] ?? '');
+    }
+    $resultado = $webhook->receberGoogle(
+        (string)file_get_contents('php://input'),
+        $segredo
+    );
+    $response->getBody()->write(json_encode($resultado['corpo'], JSON_UNESCAPED_UNICODE));
+    return $response->withStatus($resultado['http']);
+});
+
+$app->post('/assinaturas/iap/apple', function (Request $request, Response $response, $argumentos) {
+    $caminho = $_SERVER['DOCUMENT_ROOT'] . '/';
+    require_once $caminho . 'api/backLocal/classes/assinaturasIapWebhook.class.php';
+    $webhook = new assinaturasIapWebhook();
+    $resultado = $webhook->receberApple((string)file_get_contents('php://input'));
+    $response->getBody()->write(json_encode($resultado['corpo'], JSON_UNESCAPED_UNICODE));
+    return $response->withStatus($resultado['http']);
+});
+
 $app->get('/{API}/{tabela}/{funcao_executar}/{parametros}', function (Request $request, Response $response, $args) {
     $API = $args['API'];
     $tabela = $args['tabela'];
